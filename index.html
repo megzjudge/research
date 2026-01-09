@@ -1,1 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Studies to Read</title>
+  <meta name="description" content="Personal google scholar alerts for Megan Judge from studies on a range of topics." />
+  <meta name="keywords" content="Read List, Bookmarks, Studies, Scholarly, Google Scholar, Articles, Links, Megan Judge" />
+  <meta name="author" content="Megan Judge" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#f7a64b" />
+  <meta property="og:title" content="Read List | Megan Judge" />
+  <meta property="og:description" content="Personal google scholar alerts for Megan Judge from studies on a range of topics." />
+  <meta property="og:url" content="https://research.jdge.cc/" />
+  <meta property="og:image" content="/images/.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="en_AU" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="/images/.png" />
+  <meta name="twitter:image:alt" content="Read List" />
+  <link rel="icon" type="image/png" href="/images/.png" />
+  <link rel="canonical" href="https://research.jdge.cc/" />
+  <link rel="alternate" href="https://research.jdge.cc/" hreflang="en" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
 
+<body>
+  <header>
+    <h1>Scholar Alerts Viewer</h1>
+    <div class="row">
+      <button id="refreshBtn">Refresh</button>
+      <span id="status">Idle</span>
+    </div>
+    <p>Groups studies from Google Scholar Alerts into your defined sections.</p>
+  </header>
+
+  <main>
+    <section id="sec-hexaco" data-section="Hexaco">
+      <h2>Hexaco <span class="count" data-count>0</span></h2>
+      <div class="list" data-list></div>
+    </section>
+
+    <section id="sec-darktriad" data-section="Dark Triad & Machiavellianism">
+      <h2>Dark Triad & Machiavellianism <span class="count" data-count>0</span></h2>
+      <div class="list" data-list></div>
+    </section>
+
+    <section id="sec-mbti" data-section="MBTI & Myers-Briggs & Myers Briggs">
+      <h2>MBTI & Myers-Briggs & Myers Briggs <span class="count" data-count>0</span></h2>
+      <div class="list" data-list></div>
+    </section>
+
+    <section id="sec-bigfive" data-section="Big Five & Big 5 & Industriousness">
+      <h2>Big Five & Big 5 & Industriousness <span class="count" data-count>0</span></h2>
+      <div class="list" data-list></div>
+    </section>
+
+    <section id="sec-socio" data-section="Sociosexuality">
+      <h2>Sociosexuality <span class="count" data-count>0</span></h2>
+      <div class="list" data-list></div>
+    </section>
+
+    <section id="sec-authors" data-section="Authors (Noam Sobel, etc)">
+      <h2>Authors (Noam Sobel, etc) <span class="count" data-count>0</span></h2>
+      <div class="list" data-list></div>
+    </section>
+  </main>
+  <footer>
+    (c) Megan Judge
+  </footer>
+  <script src="app.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

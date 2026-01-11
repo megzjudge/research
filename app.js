@@ -1,9 +1,16 @@
+/* app.js */
+
+/**
+ * If you are serving index.html via Live Server on :5500 and the API is on :3000,
+ * set API_BASE to "http://localhost:3000".
+ *
+ * If you are serving the GUI from the Express server (recommended),
+ * leave API_BASE = "" so same-origin cookies work.
+ */
+const API_BASE = "";
+
 const SECTIONS = [
-  {
-    id: "sec-hexaco",
-    name: "Hexaco",
-    matchers: ["hexaco"]
-  },
+  { id: "sec-hexaco", name: "Hexaco", matchers: ["hexaco"] },
   {
     id: "sec-darktriad",
     name: "Dark Triad & Machiavellianism",
@@ -32,25 +39,6 @@ const SECTIONS = [
     matchers: []
   }
 ];
-
-async function ensureLogin() {
-  // Try calling /api/alerts; if 401, prompt for admin password and login.
-  const test = await fetch("/api/alerts?limit=1", { headers: { "Accept": "application/json" } });
-  if (test.ok) return true;
-  if (test.status !== 401) throw new Error(`Unexpected status: ${test.status}`);
-
-  const pw = prompt("Enter admin password to load alerts:");
-  if (!pw) return false;
-
-  const loginRes = await fetch("/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Accept": "application/json" },
-    body: JSON.stringify({ password: pw })
-  });
-
-  if (!loginRes.ok) throw new Error("Login failed");
-  return true;
-}
 
 const statusEl = document.getElementById("status");
 const refreshBtn = document.getElementById("refreshBtn");
@@ -88,6 +76,47 @@ function incrementCount(sectionId, by) {
   countEl.textContent = String(cur + by);
 }
 
+/** Always include credentials so httpOnly cookie sessions work */
+async function fetchWithCreds(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    credentials: "include",
+  });
+}
+
+async function ensureLogin() {
+  // Try calling /api/alerts; if 401, prompt for admin password and login.
+  const test = await fetchWithCreds(`${API_BASE}/api/alerts?limit=1`, {
+    headers: { "Accept": "application/json" }
+  });
+
+  if (test.ok) return true;
+  if (test.status !== 401) throw new Error(`Unexpected status: ${test.status}`);
+
+  const pw = prompt("Enter admin password to load alerts:");
+  if (!pw) return false;
+
+  const loginRes = await fetchWithCreds(`${API_BASE}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+    body: JSON.stringify({ password: pw })
+  });
+
+  if (!loginRes.ok) throw new Error(`Login failed (HTTP ${loginRes.status})`);
+  return true;
+}
+
+async function getAlerts(limit = 10) {
+  const res = await fetchWithCreds(`${API_BASE}/api/alerts?limit=${encodeURIComponent(limit)}`, {
+    headers: { "Accept": "application/json" }
+  });
+
+  if (res.status === 401) throw new Error("Unauthorized (not logged in)");
+  if (!res.ok) throw new Error(`Failed to load /api/alerts (HTTP ${res.status})`);
+
+  return res.json();
+}
+
 async function loadAndRender() {
   clearAllSections();
   setStatus("Loading…");
@@ -98,8 +127,8 @@ async function loadAndRender() {
     return;
   }
 
-  if (!res.ok) throw new Error(`Failed to load /api/alerts (HTTP ${res.status})`);
-  const payload = await res.json();
+  setStatus("Fetching alerts…");
+  const payload = await getAlerts(10);
 
   const emails = Array.isArray(payload?.emails) ? payload.emails : [];
   setStatus(`Loaded ${emails.length} email(s). Parsing…`);
@@ -169,7 +198,6 @@ function normalizeEmailIntoStudies(email) {
   const doc = new DOMParser().parseFromString(rawHtml, "text/html");
 
   // Pull alert query from the “following new results for …” line if present.
-  // Google Scholar emails often contain that text in the footer area.
   const inferredQuery = inferAlertQuery(doc) || alertQuery;
 
   const studies = extractStudiesFromScholarEmail(doc)
@@ -210,7 +238,6 @@ function decideSectionId(alertQuery, searchText) {
   const hay = (searchText || "").toLowerCase();
 
   // If alert query looks like a person name (e.g., "Noam Sobel"), route to Authors.
-  // Heuristic: 2–4 words, most start with letter, not containing obvious trait keywords.
   if (looksLikePersonName(alertQuery)) return "sec-authors";
 
   // First: try matching based on the alert query string itself.
@@ -248,14 +275,6 @@ function looksLikePersonName(alertQuery) {
 }
 
 function extractStudiesFromScholarEmail(doc) {
-  // Scholar Alerts email HTML tends to be table-heavy. Titles are almost always <a> links.
-  // We want: (title, url, snippet/summary).
-  //
-  // Strategy:
-  // 1) Find candidate result blocks by locating links that look like Scholar result URLs.
-  // 2) For each link, find the nearest container that contains snippet text.
-  // 3) Extract snippet text while avoiding footer/author lines.
-
   const links = Array.from(doc.querySelectorAll("a[href]"));
 
   // Keep links that look like result links (heuristic).
@@ -268,8 +287,6 @@ function extractStudiesFromScholarEmail(doc) {
     const bad = ["Cancel alert", "Google Scholar", "Twitter", "Facebook", "Manage alerts", "unsubscribe", "accounts.google.com"];
     if (bad.some(b => title.toLowerCase().includes(b.toLowerCase()))) return false;
 
-    // Many results are google.com/url?q=... wrappers. Allow those.
-    // Also allow direct https://scholar.google... or journal links.
     return href.startsWith("http");
   });
 
@@ -279,20 +296,16 @@ function extractStudiesFromScholarEmail(doc) {
     const title = (a.textContent || "").trim();
     const url = absolutizeUrl(a.getAttribute("href") || "");
 
-    // Find a reasonable container around the link to derive a summary/snippet.
     const container = findResultContainer(a);
     const summary = container ? extractSnippet(container, title) : "";
 
-    // Require a non-trivial summary (Scholar Alerts usually includes one).
     if (!title || !url) continue;
-
-    // If we couldn’t find a snippet, skip (you said you want summary).
     if (!summary || summary.length < 20) continue;
 
     studies.push({ title, url, summary });
   }
 
-  // De-dupe by URL (emails sometimes repeat)
+  // De-dupe by URL
   const seen = new Set();
   return studies.filter(s => {
     const key = (s.url || "").trim();
@@ -303,34 +316,28 @@ function extractStudiesFromScholarEmail(doc) {
 }
 
 function absolutizeUrl(href) {
-  // If href is a Google redirect (google.com/url?q=...), keep it as-is for now.
-  // Backend can later resolve. Frontend can still open it.
   return href;
 }
 
 function findResultContainer(anchor) {
-  // Walk up the DOM to find a block that likely corresponds to a single result.
-  // Stop when container is too large (body) or we find a table row/cell.
   let el = anchor;
   for (let i = 0; i < 8 && el; i++) {
     if (el.tagName === "TR" || el.tagName === "TD") return el;
     if (el.tagName === "TABLE") return el;
     el = el.parentElement;
   }
-  // Fallback to parent
   return anchor.parentElement || null;
 }
 
 function extractSnippet(container, title) {
-  // Get visible-ish text and remove known footer lines and author-like lines.
   let text = (container.innerText || container.textContent || "").trim();
   if (!text) return "";
 
-  // Remove title itself from the snippet chunk.
+  // Remove title itself
   const escTitle = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   text = text.replace(new RegExp(escTitle, "g"), " ").trim();
 
-  // Remove footer and action lines (you explicitly want them disregarded).
+  // Remove footer/action lines
   const dropPhrases = [
     "Cancel alert",
     "This message was sent by Google Scholar because you're following new results for",
@@ -342,19 +349,14 @@ function extractSnippet(container, title) {
     text = text.replace(new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), " ");
   }
 
-  // Remove “authors of the study” lines:
-  // Heuristic: lines that look like "A Author, B Author - Journal, Year - ..."
-  // In Scholar emails this often appears right under title.
   const lines = text.split(/\n+/).map(s => s.trim()).filter(Boolean);
 
   const cleaned = [];
   for (const line of lines) {
-    // Drop if it has " - " patterns and a year-like token early (common citation header)
     const hasDash = line.includes(" - ");
     const hasYear = /\b(19|20)\d{2}\b/.test(line);
     const looksCitationHeader = hasDash && hasYear && line.length < 200;
 
-    // Also drop if it is mostly names separated by commas and has no sentence punctuation.
     const looksLikeNames = /^[A-Za-z .,'-]+$/.test(line) && (line.split(",").length >= 2);
     const hasSentencePunct = /[.!?]/.test(line);
 
@@ -364,9 +366,7 @@ function extractSnippet(container, title) {
     cleaned.push(line);
   }
 
-  // The remaining text is the summary; keep it reasonably bounded.
-  const summary = cleaned.join("\n").trim();
-  return summary;
+  return cleaned.join("\n").trim();
 }
 
 function renderCard(study) {

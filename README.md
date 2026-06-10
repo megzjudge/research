@@ -13,11 +13,7 @@ topic with live search.
    │   alert     │ mail │                  │ write│              │ read │ (grid+search) │
    └─────────────┘      └──────────────────┘      └─────────────┘      └──────────────┘
                                                          ▲
-                                          D1 is the only shared layer.
-                                  The Worker and the site never talk directly.
 ```
-
----
 
 ## How it works
 
@@ -51,44 +47,58 @@ For each topic you want to track:
 > Tip: keep each alert to a single clean topic. The alert's subject line is what
 > the Worker uses as the section name, so one term per alert sorts most cleanly.
 
-### 2 · Register a domain in Cloudflare
+### 2 · Create a GitHub repository
 
-You need a domain on Cloudflare — Email Routing attaches to it so you can
-receive the alert emails.
+a. Create an account
 
-### 3 · Create the D1 database
+1. Go to ([github.com](https://github.com)) and click Sign up.
+2. Enter an email, a password, and a username, and verify your email when asked.
 
-```bash
-wrangler d1 create <your-db>
-wrangler d1 execute <your-db> --remote --file=./schema.sql
-```
+b. Create the repository
 
-Note the `database_id` it prints; you'll paste it into the Worker config next.
-(The schema is included at the bottom of this file.)
+1. Once signed in, click the + in the top-right corner → New repository.
+2. Give it a name.
+3. Choose Private (only you can see it).
+4. Leave the other options as-is and click Create repository.
+5. Click Add file, then create new file.
+6. **Name your file** as index.html, you don't need to put anything in it yet, then click **Commit changes**.
 
-### 4 · Deploy the Email Worker
+### 3 · Register a domain
 
-```bash
-# paste your database_id into wrangler.toml first
-wrangler deploy
-```
+You need a domain using Cloudflare DNS for the email routing - the left hand menu in [dash.cloudflare.com](https://dash.cloudflare.com)) has Domains, you can register it through Cloudflare there, or you can register it somewhere else and change it to Cloudflare's DNS (MX records for emails).
 
-### 5 · Point Email Routing at the Worker
+### 4 · Create the D1 database
 
-In Cloudflare: **your domain → Email → Email Routing**. Create a single address
-(e.g. `alerts@<yourdomain.com>`) with the action **Send to a Worker →
-`<worker-name>`**. Use this address as the destination for the Scholar alerts
-from step 1.
+In the Cloudflare dashboard ([dash.cloudflare.com](https://dash.cloudflare.com)),
+after signing in:
 
-### 6 · Bind the Worker to D1
+1. Click **Storage & Databases** in the left-hand menu.
+2. Click **D1 SQLite Database**.
+3. Click **Create Database**.
+4. Name it and create it.
+5. Open the new database, click **Explore Data** on the right, and apply the
+   schema from the bottom of this file — add the paragraph blocks one at a time.
 
-In `wrangler.toml` the D1 binding is already declared. Confirm under
-**Workers → `<worker-name>` → Settings → Bindings** that your D1 database is
-attached.
+### 5 · Create an Email Worker
 
-### 7 · Create a GitHub repository
+In the Cloudflare dashboard:
 
-Push the site files (everything except the Worker and schema) to a new repo.
+1. Click **Compute (Workers)** in the left-hand menu (or **Workers & Pages**).
+2. Click **Create application**, then **Looking to deploy Pages? Get started** at the bottom.
+3. Click **Import an existing Git repository Get started** > connect to your Github > click your Github repository you created before.
+4. Name the Worker and click **Deploy**.
+
+### 6 · Point Email Routing at the Worker
+
+In Cloudflare:
+
+1. **Domains** then click **yourdomain** then on the left side menu click **Email** then **Email Routing**.
+2. In **Routing rules** create an address, then **Send to a Worker**, destination is your Email Worker.
+
+### 7 · Bind the Worker to D1
+
+1. Go back to the main ([dash.cloudflare.com](https://dash.cloudflare.com)) Cloudflare dashboard, click **Compute**, then **Workers & Pages**.
+2. Click 
 
 ### 8 · Create a Cloudflare Pages project synced to GitHub
 
@@ -132,9 +142,9 @@ your-repo/                          # ← syncs to GitHub
 
 ## Database schema
 
-Apply through Cloudflare's D1 GUI by clicking Explore Data on the right, then adding the blocks one at a time into the Query, or apply all at once with `wrangler d1 execute <your-db> --remote --file=./schema.sql`.
+BLOCK 1:
 
-```sql
+```
 -- papers: one row per unique paper (de-duped on link)
 CREATE TABLE IF NOT EXISTS papers (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -146,7 +156,11 @@ CREATE TABLE IF NOT EXISTS papers (
   first_seen    TEXT DEFAULT (datetime('now')),
   alert_subject TEXT
 );
+```
 
+BLOCK 2:
+
+```
 -- tags: links a paper to the search term(s) that surfaced it
 CREATE TABLE IF NOT EXISTS tags (
   paper_id  INTEGER NOT NULL,
@@ -154,15 +168,32 @@ CREATE TABLE IF NOT EXISTS tags (
   PRIMARY KEY (paper_id, tag),
   FOREIGN KEY (paper_id) REFERENCES papers(id) ON DELETE CASCADE
 );
+```
 
+BLOCK 3:
+
+```
 CREATE INDEX IF NOT EXISTS idx_tags_tag    ON tags(tag);
-CREATE INDEX IF NOT EXISTS idx_papers_seen ON papers(first_seen DESC);
+```
 
+BLOCK 4:
+
+```
+CREATE INDEX IF NOT EXISTS idx_papers_seen ON papers(first_seen DESC);
+```
+
+BLOCK 5:
+
+```
 -- full-text search over title + authors + snippet
 CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
   title, authors, snippet, content='papers', content_rowid='id'
 );
+```
 
+BLOCK 6:
+
+```
 CREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
   INSERT INTO papers_fts(rowid, title, authors, snippet)
   VALUES (new.id, new.title, new.authors, new.snippet);
@@ -177,7 +208,11 @@ CREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
   INSERT INTO papers_fts(rowid, title, authors, snippet)
   VALUES (new.id, new.title, new.authors, new.snippet);
 END;
+```
 
+BLOCK 7:
+
+```
 -- sections: per-topic display state (pin / hide / order / pre-created sections)
 CREATE TABLE IF NOT EXISTS sections (
   tag        TEXT PRIMARY KEY,

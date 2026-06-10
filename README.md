@@ -132,7 +132,7 @@ your-repo/                          # ← syncs to GitHub
 
 ## Database schema
 
-Apply once with `wrangler d1 execute <your-db> --remote --file=./schema.sql` or in Cloudflare's D1 GUI by clicking Explore Data on the right, then adding the blocks one at a time into the Query.
+Apply through Cloudflare's D1 GUI by clicking Explore Data on the right, then adding the blocks one at a time into the Query, or apply all at once with `wrangler d1 execute <your-db> --remote --file=./schema.sql`.
 
 ```sql
 -- papers: one row per unique paper (de-duped on link)

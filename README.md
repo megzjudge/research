@@ -149,14 +149,14 @@ Block 1:
 ```
 -- papers: one row per unique paper (de-duped on link)
 CREATE TABLE IF NOT EXISTS papers (
-  id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  title         TEXT NOT NULL,
-  authors       TEXT,
-  snippet       TEXT,
-  link          TEXT UNIQUE,
-  venue         TEXT,
-  first_seen    TEXT DEFAULT (datetime('now')),
-  alert_subject TEXT
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  title           TEXT NOT NULL,
+  authors         TEXT,
+  snippet         TEXT,
+  link            TEXT UNIQUE,          -- de-dup key: same paper across alerts stored once
+  venue           TEXT,
+  first_seen      TEXT DEFAULT (datetime('now')),
+  alert_subject   TEXT
 );
 ```
 
@@ -166,7 +166,7 @@ Block 2:
 -- tags: links a paper to the search term(s) that surfaced it
 CREATE TABLE IF NOT EXISTS tags (
   paper_id  INTEGER NOT NULL,
-  tag       TEXT NOT NULL,
+  tag       TEXT NOT NULL,              -- the search term that surfaced this paper
   PRIMARY KEY (paper_id, tag),
   FOREIGN KEY (paper_id) REFERENCES papers(id) ON DELETE CASCADE
 );
@@ -175,7 +175,7 @@ CREATE TABLE IF NOT EXISTS tags (
 Block 3:
 
 ```
-CREATE INDEX IF NOT EXISTS idx_tags_tag    ON tags(tag);
+CREATE INDEX IF NOT EXISTS idx_tags_tag   ON tags(tag);
 ```
 
 Block 4:
@@ -187,26 +187,18 @@ CREATE INDEX IF NOT EXISTS idx_papers_seen ON papers(first_seen DESC);
 Block 5:
 
 ```
--- full-text search over title + authors + snippet
+-- Full-text search over title + authors + snippet
 CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
-  title, authors, snippet, content='papers', content_rowid='id'
+  title, authors, snippet,
+  content='papers', content_rowid='id'
 );
 ```
 
 Block 6:
 
 ```
+-- Keep the FTS index in sync with the papers table
 CREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
-  INSERT INTO papers_fts(rowid, title, authors, snippet)
-  VALUES (new.id, new.title, new.authors, new.snippet);
-END;
-CREATE TRIGGER IF NOT EXISTS papers_ad AFTER DELETE ON papers BEGIN
-  INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
-  VALUES('delete', old.id, old.title, old.authors, old.snippet);
-END;
-CREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
-  INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
-  VALUES('delete', old.id, old.title, old.authors, old.snippet);
   INSERT INTO papers_fts(rowid, title, authors, snippet)
   VALUES (new.id, new.title, new.authors, new.snippet);
 END;
@@ -215,13 +207,54 @@ END;
 Block 7:
 
 ```
--- sections: per-topic display state (pin / hide / order / pre-created sections)
+CREATE TRIGGER IF NOT EXISTS papers_ad AFTER DELETE ON papers BEGIN
+  INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
+  VALUES('delete', old.id, old.title, old.authors, old.snippet);
+END;
+```
+
+Block 8:
+
+```
+CREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
+  INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
+  VALUES('delete', old.id, old.title, old.authors, old.snippet);
+  INSERT INTO papers_fts(rowid, title, authors, snippet)
+  VALUES (new.id, new.title, new.authors, new.snippet);
+END;
+```
+
+Block 9:
+
+```
+-- ── Section curation (display state for the grid) ──────────────────
+-- One row per construct/tag the user wants to govern. Tags without a
+-- row here still render with sensible defaults, so this is purely for
+-- pinning, ordering, hiding, and pre-creating empty sections.
 CREATE TABLE IF NOT EXISTS sections (
-  tag        TEXT PRIMARY KEY,
-  label      TEXT,
-  sort_order INTEGER DEFAULT 1000,
-  pinned     INTEGER DEFAULT 0,
-  hidden     INTEGER DEFAULT 0,
+  tag        TEXT PRIMARY KEY,          -- matches tags.tag
+  label      TEXT,                      -- optional display override
+  sort_order INTEGER DEFAULT 1000,      -- lower = higher on page
+  pinned     INTEGER DEFAULT 0,         -- 0/1
+  hidden     INTEGER DEFAULT 0,         -- 0/1
   created_at TEXT DEFAULT (datetime('now'))
 );
+```
+
+Block 10:
+
+```
+-- ── Starter sections ───────────────────────────────────────────────
+-- Pre-create the tracked topics so their (initially empty) sections
+-- appear before the first alert arrives. "Big 5" is intentionally
+-- absent: the Worker canonicalizes it to "Big Five".
+INSERT OR IGNORE INTO sections (tag, sort_order) VALUES
+  ('Dark Tetrad',       10),
+  ('Dark Triad',        20),
+  ('Machiavellianism',  30),
+  ('Industriousness',   40),
+  ('Big Five',          50),
+  ('MBTI',              60),
+  ('HEXACO',            70),
+  ('Sociosexuality',    80);
 ```

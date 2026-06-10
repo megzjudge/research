@@ -85,8 +85,8 @@ In the Cloudflare dashboard:
 
 1. Click **Compute (Workers)** in the left-hand menu (or **Workers & Pages**).
 2. Click **Create application**, then **Looking to deploy Pages? Get started** at the bottom.
-3. Click **Import an existing Git repository Get started** > connect to your Github > click your Github repository you created before.
-4. Name the Worker and click **Deploy**.
+3. Click **Start with Hello World!**
+4. Change the worker name if you like, click Deploy.
 
 ### 6 · Point Email Routing at the Worker
 
@@ -98,21 +98,23 @@ In Cloudflare:
 ### 7 · Bind the Worker to D1
 
 1. Go back to the main ([dash.cloudflare.com](https://dash.cloudflare.com)) Cloudflare dashboard, click **Compute**, then **Workers & Pages**.
-2. Click 
+2. Click on your Email Worker.
+3. Click on Bindings. Click Binding.
+4. Click D1 Database > make a Variable name and then click yourdatabase from the dropdown menu.
 
 ### 8 · Create a Cloudflare Pages project synced to GitHub
 
-In Cloudflare: **Pages → Connect to Git → your repo**. No build command needed;
-Functions are auto-detected in `functions/`.
+1. Go back to **Workers & Pages**.
+2. Click **Create application**, then **Looking to deploy Pages? Get started** at the bottom.
+3. Click **Import an existing Git repository Get started** > connect to your Github > click your Github repository you created before.
+4. Name the Worker and click **Deploy**.
 
 ### 9 · Bind Pages to D1
 
-**Pages → Settings → Functions → D1 database bindings** → add a binding whose
-variable name matches the one used in the Functions code, pointing at your D1
-database.
-
-> This binding is what lets the site read papers. Without it the page loads but
-> stays empty.
+1. Click Settings.
+2. Scroll down to Bindings.
+3. Click Add > Click D1.
+4. Create a name, click the D1 from the dropdown.
 
 ---
 
@@ -142,7 +144,7 @@ your-repo/                          # ← syncs to GitHub
 
 ## Database schema
 
-BLOCK 1:
+Block 1:
 
 ```
 -- papers: one row per unique paper (de-duped on link)
@@ -158,7 +160,7 @@ CREATE TABLE IF NOT EXISTS papers (
 );
 ```
 
-BLOCK 2:
+Block 2:
 
 ```
 -- tags: links a paper to the search term(s) that surfaced it
@@ -170,19 +172,19 @@ CREATE TABLE IF NOT EXISTS tags (
 );
 ```
 
-BLOCK 3:
+Block 3:
 
 ```
 CREATE INDEX IF NOT EXISTS idx_tags_tag    ON tags(tag);
 ```
 
-BLOCK 4:
+Block 4:
 
 ```
 CREATE INDEX IF NOT EXISTS idx_papers_seen ON papers(first_seen DESC);
 ```
 
-BLOCK 5:
+Block 5:
 
 ```
 -- full-text search over title + authors + snippet
@@ -191,7 +193,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
 );
 ```
 
-BLOCK 6:
+Block 6:
 
 ```
 CREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
@@ -210,7 +212,7 @@ CREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
 END;
 ```
 
-BLOCK 7:
+Block 7:
 
 ```
 -- sections: per-topic display state (pin / hide / order / pre-created sections)

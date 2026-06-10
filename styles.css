@@ -1,13 +1,13 @@
 :root {
-  --paper:   #faf8f3;
-  --card:    #fffdf8;
-  --ink:     #1c1a17;
-  --muted:   #6f685d;
-  --faint:   #9a9387;
-  --line:    #e2dccf;
-  --line-strong: #cabfa9;
-  --accent:  #6b4f9e;
-  --accent-soft: #efe9f6;
+  --paper:   #16151a;   /* page background — warm near-black */
+  --card:    #1f1d25;   /* card surface, slightly lifted */
+  --ink:     #ece8f0;   /* primary text */
+  --muted:   #a39db0;   /* secondary text */
+  --faint:   #6f6a7a;   /* timestamps, counts */
+  --line:    #2c2a34;   /* hairline borders */
+  --line-strong: #423e50;
+  --accent:  #b69cf0;   /* brightened violet — reads on dark */
+  --accent-soft: #2a2440;
   --serif: "Newsreader", Georgia, serif;
   --mono:  "IBM Plex Mono", ui-monospace, monospace;
 }
@@ -83,3 +83,17 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .sec-more:hover { text-decoration: underline; }
 
 .statusline { font-family: var(--mono); font-size: 12px; color: var(--faint); padding: 50px 0; text-align: center; }
+
+footer {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding: 26px 30px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--faint);
+  text-align: center;
+}
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+@media (max-width: 540px){ footer { padding: 22px 18px; } }

@@ -15,6 +15,18 @@ const KNOWN_TERMS = [
   "Big Five", "Big 5", "MBTI", "Myers-Briggs", "HEXACO", "Sociosexuality",
 ];
 
+// Map variant spellings to one canonical tag so they share a section.
+const TERM_ALIASES = {
+  "big 5": "Big Five",
+  "big five": "Big Five",
+  "myers-briggs": "MBTI",
+  "myers briggs": "MBTI",
+};
+
+function canonical(term) {
+  return TERM_ALIASES[term.toLowerCase().trim()] || term;
+}
+
 export default {
   async email(message, env, ctx) {
     const raw = await streamToString(message.raw);
@@ -94,11 +106,12 @@ function deriveTag(subject) {
   const quoted = subject.match(/[""']([^""']+)[""']/);
   if (quoted) {
     const matched = matchKnownTerm(quoted[1]);
-    if (matched) return matched;
-    return quoted[1].trim();
+    if (matched) return canonical(matched);
+    return canonical(quoted[1].trim());
   }
   const matched = matchKnownTerm(subject);
-  return matched || subject.replace(/\s*-\s*new results.*/i, "").trim() || "untagged";
+  if (matched) return canonical(matched);
+  return canonical(subject.replace(/\s*-\s*new results.*/i, "").trim()) || "untagged";
 }
 
 function matchKnownTerm(text) {

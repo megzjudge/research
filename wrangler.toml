@@ -2,6 +2,10 @@ name = "research-emails"
 main = "src/worker.js"
 compatibility_date = "2025-01-09"
 
+name = "research-emails"
+main = "worker.js"
+compatibility_date = "2025-01-09"
+
 [[d1_databases]]
 binding = "research"
 database_name = "research"

@@ -1,8 +1,4 @@
 name = "research-emails"
-main = "src/worker.js"
-compatibility_date = "2025-01-09"
-
-name = "research-emails"
 main = "worker.js"
 compatibility_date = "2025-01-09"
 

@@ -22,53 +22,39 @@
   <link rel="canonical" href="https://research.jdge.cc/" />
   <link rel="alternate" href="https://research.jdge.cc/" hreflang="en" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
 </head>
-
+  
 <body>
-  <header>
-    <h1>Scholar Alerts Viewer</h1>
-    <div class="row">
-      <button id="refreshBtn">Refresh</button>
-      <span id="status">Idle</span>
+<div class="layout">
+  <aside class="rail">
+    <p class="brand">Scholar Alerts Viewer<span class="dot">.</span></p>
+    <p class="tagline">New papers across the trait taxonomies I track through Google Scholar Alerts.</p>
+    <ul id="railnav" class="railnav"></ul>
+    <div class="addbox">
+      <input id="newtag" type="text" placeholder="add a construct…" autocomplete="off" />
+      <button id="addbtn">add</button>
     </div>
-    <p>Groups studies from Google Scholar Alerts into your defined sections.</p>
-  </header>
+    <p class="addhint">Creates an empty section now. Set the same name as your Scholar alert subject and its emails will land here.</p>
+  </aside>
 
-  <main>
-    <section id="sec-hexaco" data-section="Hexaco">
-      <h2>Hexaco <span class="count" data-count>0</span></h2>
-      <div class="list" data-list></div>
-    </section>
-
-    <section id="sec-darktriad" data-section="Dark Triad & Machiavellianism">
-      <h2>Dark Triad & Machiavellianism <span class="count" data-count>0</span></h2>
-      <div class="list" data-list></div>
-    </section>
-
-    <section id="sec-mbti" data-section="MBTI & Myers-Briggs & Myers Briggs">
-      <h2>MBTI & Myers-Briggs & Myers Briggs <span class="count" data-count>0</span></h2>
-      <div class="list" data-list></div>
-    </section>
-
-    <section id="sec-bigfive" data-section="Big Five & Big 5 & Industriousness">
-      <h2>Big Five & Big 5 & Industriousness <span class="count" data-count>0</span></h2>
-      <div class="list" data-list></div>
-    </section>
-
-    <section id="sec-socio" data-section="Sociosexuality">
-      <h2>Sociosexuality <span class="count" data-count>0</span></h2>
-      <div class="list" data-list></div>
-    </section>
-
-    <section id="sec-authors" data-section="Authors (Noam Sobel, etc)">
-      <h2>Authors (Noam Sobel, etc) <span class="count" data-count>0</span></h2>
-      <div class="list" data-list></div>
-    </section>
+  <main class="content">
+    <div class="searchwrap">
+      <input id="q" class="search" type="search" placeholder="search all papers — titles, authors, abstracts…" autocomplete="off" />
+    </div>
+    <div id="sections"></div>
+    <div id="status" class="statusline">loading…</div>
   </main>
+
   <footer>
     (c) Megan Judge
   </footer>
-  <script src="app.js"></script>
-  <script src="script.js"></script>
+  
+  <script src="/app.js"></script>
+  <script src="/script.js"></script>
+  
 </body>
 </html>

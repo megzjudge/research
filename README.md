@@ -117,18 +117,12 @@ your-repo/                          # ← syncs to GitHub
 ├── index.html
 ├── styles.css
 ├── script.js
+├── worker.js 
+├── wrangler.toml
 └── functions/api/
     ├── papers.js                   # GET search / filter / paginate
     ├── tags.js                     # GET tag list + counts
     └── sections.js                 # GET sections+papers · POST curate (add/pin/hide)
-```
-
-Kept **outside** the repo, handled separately:
-
-```
-worker.js          # the Email Worker — deployed on its own
-wrangler.toml      # its config + D1 binding
-schema.sql         # applied to D1 once, by hand
 ```
 
 > Only the site auto-deploys on push. The Email Worker is deployed independently,
@@ -136,38 +130,9 @@ schema.sql         # applied to D1 once, by hand
 
 ---
 
-## Good to know
-
-**The two halves never bind to each other.** The Worker writes to D1; the site
-reads from D1. Both bind only to the database — never to each other.
-
-**The parser** targets Scholar's standard "new articles" alert layout and pulls
-out title, link (un-wrapped from Scholar's redirect), authors/venue, and snippet.
-Scholar occasionally varies its markup for citation or "related to your work"
-alerts; if one doesn't parse, the raw HTML body of that email shows what the
-selectors need to match.
-
-**Curation is open by default.** The add / pin / hide endpoints aren't
-authenticated. Fine for a private or unlisted site; add an auth check to the
-`POST /api/sections` handler before making it public.
-
----
-
-## Quick checks
-
-```bash
-# did papers land?
-wrangler d1 execute <your-db> --remote --command "SELECT title, link FROM papers LIMIT 5;"
-
-# what topics exist?
-wrangler d1 execute <your-db> --remote --command "SELECT tag, COUNT(*) FROM tags GROUP BY tag;"
-```
-
----
-
 ## Database schema
 
-Apply once with `wrangler d1 execute <your-db> --remote --file=./schema.sql`.
+Apply once with `wrangler d1 execute <your-db> --remote --file=./schema.sql` or in Cloudflare's D1 GUI by clicking Explore Data on the right, then adding the blocks one at a time into the Query.
 
 ```sql
 -- papers: one row per unique paper (de-duped on link)

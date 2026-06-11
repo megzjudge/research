@@ -118,8 +118,14 @@ In Cloudflare:
 
 ### 10 · Edit Email Worker code
 
-1. **Domains** then click **yourdomain** then on the left side menu click **Email** then **Email Routing**.
+1. Go back to the main ([dash.cloudflare.com](https://dash.cloudflare.com)) Cloudflare dashboard, **Domains** then click **yourdomain** then on the left side menu click **Email** then **Email Routing**.
 2. Click **Destination Workers**, three dots, **Code editor**.
+3. Add in a worker.js file to dictate to your worker what to do.
+
+or
+
+1. Go back to the main ([dash.cloudflare.com](https://dash.cloudflare.com)) Cloudflare dashboard, click **Compute**, then **Workers & Pages**
+2. Click your Email Worker, then top right **Edit Code**.
 3. Add in a worker.js file to dictate to your worker what to do.
 
 ### 11 · Add code to github

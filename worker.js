@@ -44,6 +44,10 @@ export default {
     const isScholar = from === "scholaralerts-noreply@google.com";
     const isForwarder = allowed.includes(from);
 
+    console.log(
+      `gate check → from="${from}" | secretSet=${env.FORWARDED_EMAILS !== undefined} | allowed=[${allowed.join(" | ")}]`
+    );
+
     if (!isScholar && !isForwarder) {
       console.log(`Rejected mail from ${from}`);
       message.setReject("Sender not allowed");

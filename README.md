@@ -1,7 +1,7 @@
 # Scholar Alert Pipeline
 
 
-> Turn Google Scholar alert emails into a searchable, auto-sorting research website — no inbox to check, no manual filing. This can be used (with really basic tweaking) for any emails you wish to receive.
+Turn Google Scholar alert emails into a searchable, auto-sorting research website — no inbox to check, no manual filing. This can be used (with really basic tweaking) for any emails you wish to receive.
 
 
 ```
@@ -20,7 +20,7 @@
    paper out of the HTML, tags it by the alert subject, removes duplicates, and
    writes it into a **D1** database.
 3. The **Pages site** reads from the same database and shows the papers as cards,
-   grouped one section per topic, with search and pin / hide / add controls.
+   grouped one section per topic, with search and pin / hide / add controls on a page.
 
 You can replace the search terms with anything — the topics are driven entirely
 by which Scholar alerts you create.

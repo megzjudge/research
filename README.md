@@ -116,6 +116,16 @@ In Cloudflare:
 3. Click Add > Click D1.
 4. Create a name, click the D1 from the dropdown.
 
+### 10 · Edit Email Worker code
+
+1. **Domains** then click **yourdomain** then on the left side menu click **Email** then **Email Routing**.
+2. Click **Destination Workers**, three dots, **Code editor**.
+3. Add in a worker.js file to dictate to your worker what to do.
+
+### 11 · Add code to github
+
+1. Code what you want the website to look like and organise your incoming emails to do.
+
 ---
 
 ## Project layout

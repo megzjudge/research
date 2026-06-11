@@ -31,7 +31,16 @@ function canonical(term) {
   return TERM_ALIASES[term.toLowerCase().trim()] || term;
 }
 
+const VERSION = "worker v4 — sender gate + debug logging (2026-06-11)";
+
 export default {
+  // Lets you check what's deployed by visiting the worker's URL in a browser.
+  async fetch() {
+    return new Response(VERSION, {
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  },
+
   async email(message, env, ctx) {
     // ── sender gate ────────────────────────────────────────────────
     const from = (message.from || "").toLowerCase();

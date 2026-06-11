@@ -1,18 +1,23 @@
 /**
- * research-emails Worker
+ * research-emails Worker  —  v5
  *
  * Receives Google Scholar alert emails via Cloudflare Email Routing,
  * parses out each paper, tags it by the search term that triggered the
  * alert, de-dupes on the paper link, and writes into the D1 `research` db.
  *
- * Accepts mail from Scholar itself, or from addresses listed in the
- * FORWARDED_EMAILS secret (comma-separated) — used to forward old alerts in.
+ * Accepts mail from scholaralerts-noreply@google.com, or from addresses
+ * listed in the FORWARDED_EMAILS secret (comma-separated).
  *
- * Bindings (wrangler.toml / dashboard):
+ * v5: decodes base64 MIME parts (Proton Mail forwards) and falls back to
+ *     parsing scholar_url anchors when no <h3> blocks survive forwarding.
+ *
+ * Bindings:
  *   - D1:     research          (env.research)
- *   - Email:  Research          (env.Research)  // for forwarding/reply if ever needed
+ *   - Email:  Research          (env.Research)
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
+
+const VERSION = "worker v6 — scholar_url-only titles + gse_alrt_sni snippets (2026-06-11)";
 
 const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
@@ -30,8 +35,6 @@ const TERM_ALIASES = {
 function canonical(term) {
   return TERM_ALIASES[term.toLowerCase().trim()] || term;
 }
-
-const VERSION = "worker v4 — sender gate + debug logging (2026-06-11)";
 
 export default {
   // Lets you check what's deployed by visiting the worker's URL in a browser.
@@ -67,7 +70,6 @@ export default {
     const raw = await streamToString(message.raw);
     const subject = message.headers.get("subject") || "";
 
-    // The body of a Scholar alert is HTML. Extract it from the MIME message.
     const html = extractHtmlBody(raw);
     if (!html) {
       console.log("No HTML body found; skipping.");
@@ -76,7 +78,9 @@ export default {
 
     const papers = parseScholarHtml(html);
     if (papers.length === 0) {
-      console.log("No papers parsed from alert:", subject);
+      console.log(
+        `No papers parsed from alert: ${subject} | html ${html.length} chars | starts: ${html.slice(0, 100).replace(/\s+/g, " ")}`
+      );
       return;
     }
 
@@ -92,20 +96,33 @@ export default {
 
 /* ------------------------- parsing ------------------------- */
 
-// Each Scholar result is an <h3> with the title link, followed by a
-// green author/venue line and a snippet div. We walk h3 blocks.
 function parseScholarHtml(html) {
+  let results = parseByH3(html);
+  let via = "h3";
+  if (results.length === 0) {
+    results = parseByAnchors(html);
+    via = "scholar_url anchors";
+  }
+  results = dedupeByLink(results);
+  if (results.length) console.log(`Parsed ${results.length} paper(s) via ${via}.`);
+  return results;
+}
+
+// Strategy 1: each Scholar result is an <h3> with the title link, followed
+// by a green author/venue line and a snippet div. We walk h3 blocks.
+function parseByH3(html) {
   const results = [];
-  // Split on the title heading anchor pattern Scholar uses.
   const blocks = html.split(/<h3\b/i).slice(1);
 
   for (const block of blocks) {
     const chunk = "<h3" + block;
 
-    const titleAnchor = chunk.match(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+    // Real title links are always wrapped in scholar_url; footer/share
+    // links are not — this skips the "Cancel alert" / search-term anchors.
+    const titleAnchor = chunk.match(/<a[^>]*href="([^"]*scholar_url[^"]*)"[^>]*>([\s\S]*?)<\/a>/i);
     if (!titleAnchor) continue;
 
-    const link = decodeEntities(unwrapScholarLink(titleAnchor[1]));
+    const link = decodeEntities(unwrapScholarLink(decodeEntities(titleAnchor[1])));
     const title = stripTags(titleAnchor[2]).trim();
     if (!title) continue;
 
@@ -114,14 +131,62 @@ function parseScholarHtml(html) {
       || chunk.match(/<div[^>]*green[^>]*>([\s\S]*?)<\/div>/i);
     const authors = meta ? stripTags(meta[1]).trim() : "";
 
-    // Snippet: the next div block of body text.
-    const snippetMatch = chunk.match(/<div[^>]*>([\s\S]{40,}?)<\/div>/i);
+    // Snippet: Scholar marks it with class gse_alrt_sni; fall back to the
+    // first substantial div if the class was stripped in transit.
+    const snippetMatch = chunk.match(/<div[^>]*gse_alrt_sni[^>]*>([\s\S]*?)<\/div>/i)
+      || chunk.match(/<div[^>]*>([\s\S]{40,}?)<\/div>/i);
     const snippet = snippetMatch ? stripTags(snippetMatch[1]).trim() : "";
 
     results.push({ title, link, authors, snippet, venue: authors });
   }
 
-  return dedupeByLink(results);
+  return results;
+}
+
+// Strategy 2 (forwarded mail fallback): clients often rewrite Scholar's
+// markup, but the title links keep their scholar_url wrapper. Every anchor
+// whose href contains scholar_url and whose text looks like a title is a
+// paper; authors + snippet come from the text between it and the next one.
+function parseByAnchors(html) {
+  const results = [];
+  const re = /<a[^>]*href="([^"]*scholar_url[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+
+  const anchors = [];
+  let m;
+  while ((m = re.exec(html))) {
+    anchors.push({ start: m.index, end: re.lastIndex, href: m[1], inner: m[2] });
+  }
+
+  for (let i = 0; i < anchors.length; i++) {
+    const a = anchors[i];
+    const title = stripTags(a.inner).trim();
+    if (!title || title.length < 8) continue; // skip icon/button anchors
+
+    const link = decodeEntities(unwrapScholarLink(decodeEntities(a.href)));
+
+    // Text between this title and the next paper's title.
+    const tailEnd = i + 1 < anchors.length ? anchors[i + 1].start : Math.min(a.end + 2000, html.length);
+    const text = stripTags(html.slice(a.end, tailEnd)).trim();
+
+    // Scholar formats the byline as "AUTHORS - YEAR" (or "AUTHORS - VENUE, YEAR").
+    let authors = "";
+    let snippet = text;
+    const by = text.match(/^(.{0,160}?\b(?:19|20)\d{2}\b)\s*/);
+    if (by) {
+      authors = by[1].trim();
+      snippet = text.slice(by[0].length).trim();
+    }
+    // Trim trailing Scholar boilerplate from the last result's snippet.
+    snippet = snippet
+      .replace(/\b(Save|Twitter|LinkedIn|Facebook)\b.*$/s, "")
+      .replace(/This message was sent by Google Scholar.*$/is, "")
+      .replace(/Cancel alert.*$/is, "")
+      .trim();
+
+    results.push({ title, link, authors, snippet, venue: authors });
+  }
+
+  return results;
 }
 
 // Scholar wraps links: https://scholar.google.com/scholar_url?url=REAL&...
@@ -141,7 +206,7 @@ function deriveTag(subject) {
   subject = subject.replace(/^\s*(?:(?:fwd?|fw|re)\s*:\s*)+/i, "");
 
   // Subjects look like:  'New articles in the topic "Dark Triad"'
-  //                 or:  'Dark Triad - new results'
+  //                 or:  '"dark tetrad" - new results'
   const quoted = subject.match(/[""']([^""']+)[""']/);
   if (quoted) {
     const matched = matchKnownTerm(quoted[1]);
@@ -188,7 +253,7 @@ async function upsertPaper(db, p, tag, subject) {
     .run();
 }
 
-/* ------------------------- helpers ------------------------- */
+/* ------------------------- MIME helpers ------------------------- */
 
 async function streamToString(stream) {
   const chunks = [];
@@ -209,19 +274,34 @@ function concat(chunks) {
   return out;
 }
 
-// Pull the text/html part out of a raw MIME message (handles quoted-printable).
+// Pull the text/html part out of a raw MIME message.
+// Reads the part's OWN headers for its transfer encoding and decodes
+// quoted-printable or base64 accordingly (Proton Mail uses base64).
 function extractHtmlBody(raw) {
   const idx = raw.search(/Content-Type:\s*text\/html/i);
   if (idx === -1) {
     return /<html|<body|<h3/i.test(raw) ? raw : null;
   }
+
   let body = raw.slice(idx);
-  const isQP = /Content-Transfer-Encoding:\s*quoted-printable/i.test(body);
-  const blank = body.indexOf("\r\n\r\n") !== -1 ? body.indexOf("\r\n\r\n") + 4 : body.indexOf("\n\n") + 2;
-  body = body.slice(blank);
+
+  // Part headers run until the first blank line.
+  const blank = body.match(/\r?\n\r?\n/);
+  const headerEnd = blank ? blank.index + blank[0].length : 0;
+  const partHeaders = body.slice(0, headerEnd);
+
+  const encMatch = partHeaders.match(/Content-Transfer-Encoding:\s*([\w-]+)/i);
+  const enc = (encMatch ? encMatch[1] : "7bit").toLowerCase();
+
+  body = body.slice(headerEnd);
+
+  // Cut at the next MIME boundary.
   const end = body.search(/\r?\n--/);
   if (end !== -1) body = body.slice(0, end);
-  if (isQP) body = decodeQuotedPrintable(body);
+
+  if (enc === "quoted-printable") body = decodeQuotedPrintable(body);
+  else if (enc === "base64") body = decodeBase64(body);
+
   return body;
 }
 
@@ -229,6 +309,18 @@ function decodeQuotedPrintable(s) {
   return s
     .replace(/=\r?\n/g, "")
     .replace(/=([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+}
+
+function decodeBase64(s) {
+  try {
+    const clean = s.replace(/[^A-Za-z0-9+/=]/g, "");
+    const bin = atob(clean);
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    return new TextDecoder("utf-8").decode(bytes);
+  } catch (e) {
+    console.log("base64 decode failed:", String(e));
+    return s;
+  }
 }
 
 function stripTags(s) {

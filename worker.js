@@ -1,23 +1,28 @@
 /**
- * research-emails Worker  —  v5
+ * scholar-alerts Email Worker  —  v7
  *
  * Receives Google Scholar alert emails via Cloudflare Email Routing,
  * parses out each paper, tags it by the search term that triggered the
- * alert, de-dupes on the paper link, and writes into the D1 `research` db.
+ * alert, de-dupes on the paper link, and writes into a D1 database.
  *
  * Accepts mail from scholaralerts-noreply@google.com, or from addresses
- * listed in the FORWARDED_EMAILS secret (comma-separated).
+ * listed in the FORWARDED_EMAILS secret (comma-separated) — so you can
+ * forward old alerts in from your own inbox.
  *
- * v5: decodes base64 MIME parts (Proton Mail forwards) and falls back to
- *     parsing scholar_url anchors when no <h3> blocks survive forwarding.
+ * Forwarding support: handles inline forwards and forward-as-attachment
+ * from Gmail, Proton Mail, Outlook (incl. SafeLinks-rewritten URLs),
+ * Apple Mail, etc. Decodes quoted-printable and base64 MIME parts in
+ * their declared charset, scans every text/html part in the message,
+ * and falls back to scholar_url-anchor parsing when a client rewrites
+ * Scholar's markup. Plain-text-only forwards are NOT supported — the
+ * paper links don't survive them. Forward as inline HTML.
  *
  * Bindings:
  *   - D1:     research          (env.research)
- *   - Email:  Research          (env.Research)
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v6 — scholar_url-only titles + gse_alrt_sni snippets (2026-06-11)";
+const VERSION = "worker v7 — multi-part scan, SafeLinks unwrap, charset-aware decode (2026-06-11)";
 
 const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
@@ -70,16 +75,24 @@ export default {
     const raw = await streamToString(message.raw);
     const subject = message.headers.get("subject") || "";
 
-    const html = extractHtmlBody(raw);
-    if (!html) {
-      console.log("No HTML body found; skipping.");
+    // A forward can contain several text/html parts (the forwarder's
+    // wrapper, the original message, an attached .eml). Scan them all.
+    const htmlParts = extractHtmlBodies(raw);
+    if (htmlParts.length === 0) {
+      console.log("No HTML body found; skipping. (Plain-text forwards aren't supported — forward as inline HTML.)");
       return;
     }
 
-    const papers = parseScholarHtml(html);
+    let papers = [];
+    for (const html of htmlParts) {
+      papers = papers.concat(parseScholarHtml(html));
+    }
+    papers = dedupeByLink(papers);
+
     if (papers.length === 0) {
+      const first = htmlParts[0] || "";
       console.log(
-        `No papers parsed from alert: ${subject} | html ${html.length} chars | starts: ${html.slice(0, 100).replace(/\s+/g, " ")}`
+        `No papers parsed from alert: ${subject} | ${htmlParts.length} html part(s), first ${first.length} chars, starts: ${first.slice(0, 100).replace(/\s+/g, " ")}`
       );
       return;
     }
@@ -117,12 +130,12 @@ function parseByH3(html) {
   for (const block of blocks) {
     const chunk = "<h3" + block;
 
-    // Real title links are always wrapped in scholar_url; footer/share
-    // links are not — this skips the "Cancel alert" / search-term anchors.
+    // Real title links always carry the scholar_url wrapper (it survives
+    // URL-encoding inside Outlook SafeLinks too); footer/share links don't.
     const titleAnchor = chunk.match(/<a[^>]*href="([^"]*scholar_url[^"]*)"[^>]*>([\s\S]*?)<\/a>/i);
     if (!titleAnchor) continue;
 
-    const link = decodeEntities(unwrapScholarLink(decodeEntities(titleAnchor[1])));
+    const link = unwrapLink(decodeEntities(titleAnchor[1]));
     const title = stripTags(titleAnchor[2]).trim();
     if (!title) continue;
 
@@ -143,10 +156,10 @@ function parseByH3(html) {
   return results;
 }
 
-// Strategy 2 (forwarded mail fallback): clients often rewrite Scholar's
-// markup, but the title links keep their scholar_url wrapper. Every anchor
-// whose href contains scholar_url and whose text looks like a title is a
-// paper; authors + snippet come from the text between it and the next one.
+// Strategy 2 (rewritten-markup fallback): clients like Outlook restructure
+// Scholar's HTML, but title links keep their scholar_url wrapper. Every
+// anchor whose href contains scholar_url and whose text looks like a title
+// is a paper; authors + snippet come from the text before the next one.
 function parseByAnchors(html) {
   const results = [];
   const re = /<a[^>]*href="([^"]*scholar_url[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
@@ -162,7 +175,7 @@ function parseByAnchors(html) {
     const title = stripTags(a.inner).trim();
     if (!title || title.length < 8) continue; // skip icon/button anchors
 
-    const link = decodeEntities(unwrapScholarLink(decodeEntities(a.href)));
+    const link = unwrapLink(decodeEntities(a.href));
 
     // Text between this title and the next paper's title.
     const tailEnd = i + 1 < anchors.length ? anchors[i + 1].start : Math.min(a.end + 2000, html.length);
@@ -189,15 +202,24 @@ function parseByAnchors(html) {
   return results;
 }
 
-// Scholar wraps links: https://scholar.google.com/scholar_url?url=REAL&...
-function unwrapScholarLink(href) {
-  try {
-    const u = new URL(href);
-    const real = u.searchParams.get("url");
-    return real || href;
-  } catch {
-    return href;
+// Iteratively unwrap redirector links:
+//   Outlook SafeLinks:  https://…safelinks.protection.outlook.com/?url=ENCODED
+//   Google Scholar:     https://scholar.google.com/scholar_url?url=REAL&…
+// Any wrapper exposing a ?url= param containing an absolute URL is peeled,
+// up to 4 layers deep.
+function unwrapLink(href) {
+  let link = href;
+  for (let i = 0; i < 4; i++) {
+    let inner = null;
+    try {
+      inner = new URL(link).searchParams.get("url");
+    } catch {
+      break;
+    }
+    if (inner && /^https?:\/\//i.test(inner)) link = inner;
+    else break;
   }
+  return link;
 }
 
 function deriveTag(subject) {
@@ -274,52 +296,77 @@ function concat(chunks) {
   return out;
 }
 
-// Pull the text/html part out of a raw MIME message.
-// Reads the part's OWN headers for its transfer encoding and decodes
-// quoted-printable or base64 accordingly (Proton Mail uses base64).
-function extractHtmlBody(raw) {
-  const idx = raw.search(/Content-Type:\s*text\/html/i);
-  if (idx === -1) {
-    return /<html|<body|<h3/i.test(raw) ? raw : null;
+// Pull EVERY text/html part out of a raw MIME message — forwards can nest
+// the original message (forward-as-attachment) or add wrapper parts.
+// Each part is decoded per its own Content-Transfer-Encoding and charset:
+// quoted-printable (Gmail), base64 (Proton Mail), or plain 7bit/8bit.
+function extractHtmlBodies(raw) {
+  const bodies = [];
+  const re = /Content-Type:\s*text\/html[^\r\n]*/gi;
+  let m;
+  while ((m = re.exec(raw))) {
+    const chunk = raw.slice(m.index);
+
+    // Part headers run until the first blank line.
+    const blank = chunk.match(/\r?\n\r?\n/);
+    if (!blank) continue;
+    const headerEnd = blank.index + blank[0].length;
+    const partHeaders = chunk.slice(0, headerEnd);
+
+    let body = chunk.slice(headerEnd);
+    const end = body.search(/\r?\n--/); // next MIME boundary
+    if (end !== -1) body = body.slice(0, end);
+
+    const enc = (partHeaders.match(/Content-Transfer-Encoding:\s*([\w-]+)/i)?.[1] || "7bit").toLowerCase();
+    const charset = partHeaders.match(/charset="?([A-Za-z0-9_-]+)"?/i)?.[1] || "utf-8";
+
+    const decoded = decodePart(body, enc, charset);
+    if (decoded && decoded.trim()) bodies.push(decoded);
   }
 
-  let body = raw.slice(idx);
+  // Not a MIME multipart at all? Some messages are bare HTML.
+  if (bodies.length === 0 && /<html|<body|<h3|scholar_url/i.test(raw)) {
+    bodies.push(raw);
+  }
 
-  // Part headers run until the first blank line.
-  const blank = body.match(/\r?\n\r?\n/);
-  const headerEnd = blank ? blank.index + blank[0].length : 0;
-  const partHeaders = body.slice(0, headerEnd);
-
-  const encMatch = partHeaders.match(/Content-Transfer-Encoding:\s*([\w-]+)/i);
-  const enc = (encMatch ? encMatch[1] : "7bit").toLowerCase();
-
-  body = body.slice(headerEnd);
-
-  // Cut at the next MIME boundary.
-  const end = body.search(/\r?\n--/);
-  if (end !== -1) body = body.slice(0, end);
-
-  if (enc === "quoted-printable") body = decodeQuotedPrintable(body);
-  else if (enc === "base64") body = decodeBase64(body);
-
-  return body;
+  return bodies;
 }
 
-function decodeQuotedPrintable(s) {
-  return s
-    .replace(/=\r?\n/g, "")
-    .replace(/=([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
-}
-
-function decodeBase64(s) {
+function decodePart(body, enc, charset) {
   try {
-    const clean = s.replace(/[^A-Za-z0-9+/=]/g, "");
-    const bin = atob(clean);
-    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-    return new TextDecoder("utf-8").decode(bytes);
+    if (enc === "base64") {
+      const clean = body.replace(/[^A-Za-z0-9+/=]/g, "");
+      const bin = atob(clean);
+      const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+      return decodeCharset(bytes, charset);
+    }
+    if (enc === "quoted-printable") {
+      // Decode to BYTES first, then apply the charset — decoding straight
+      // to chars mangles multi-byte UTF-8 (Müller → MÃ¼ller).
+      const joined = body.replace(/=\r?\n/g, "");
+      const bytes = [];
+      for (let i = 0; i < joined.length; i++) {
+        if (joined[i] === "=" && /^[0-9A-Fa-f]{2}/.test(joined.slice(i + 1, i + 3))) {
+          bytes.push(parseInt(joined.slice(i + 1, i + 3), 16));
+          i += 2;
+        } else {
+          bytes.push(joined.charCodeAt(i) & 0xff);
+        }
+      }
+      return decodeCharset(new Uint8Array(bytes), charset);
+    }
+    return body; // 7bit / 8bit / binary
   } catch (e) {
-    console.log("base64 decode failed:", String(e));
-    return s;
+    console.log(`part decode failed (${enc}/${charset}):`, String(e));
+    return body;
+  }
+}
+
+function decodeCharset(bytes, charset) {
+  try {
+    return new TextDecoder(charset).decode(bytes);
+  } catch {
+    return new TextDecoder("utf-8").decode(bytes); // unknown charset → utf-8
   }
 }
 
@@ -342,3 +389,6 @@ function dedupeByLink(arr) {
     return true;
   });
 }
+
+// Exported for testing (ignored by the Workers runtime).
+export { parseScholarHtml, extractHtmlBodies, unwrapLink, deriveTag };

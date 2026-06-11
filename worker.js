@@ -41,7 +41,7 @@ export default {
       .map((s) => s.trim().toLowerCase())
       .filter(Boolean);
 
-    const isScholar = from.endsWith("@google.com"); // scholaralerts-noreply@google.com
+    const isScholar = from === "scholaralerts-noreply@google.com";
     const isForwarder = allowed.includes(from);
 
     if (!isScholar && !isForwarder) {

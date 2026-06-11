@@ -1,10 +1,6 @@
 # Scholar Alert Pipeline
 
-> Turn Google Scholar alert emails into a searchable, auto-sorting research website — no inbox to check, no manual filing.
-
-A fully serverless pipeline on Cloudflare. Scholar emails an alert, a Worker
-parses it the moment it arrives, and a website displays every paper grouped by
-topic with live search.
+> Turn Google Scholar alert emails into a searchable, auto-sorting research website — no inbox to check, no manual filing. This can be used (with really basic tweaking) for any emails you wish to receive.
 
 ```
    ┌─────────────┐      ┌──────────────────┐      ┌─────────────┐      ┌──────────────┐

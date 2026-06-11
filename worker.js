@@ -5,9 +5,13 @@
  * parses out each paper, tags it by the search term that triggered the
  * alert, de-dupes on the paper link, and writes into the D1 `research` db.
  *
- * Bindings (wrangler.toml):
- *   - D1:    research   (env.research)
- *   - Email: Research   (env.Research)  // for forwarding/reply if ever needed
+ * Accepts mail from Scholar itself, or from addresses listed in the
+ * FORWARDED_EMAILS secret (comma-separated) — used to forward old alerts in.
+ *
+ * Bindings (wrangler.toml / dashboard):
+ *   - D1:     research          (env.research)
+ *   - Email:  Research          (env.Research)  // for forwarding/reply if ever needed
+ *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
 const KNOWN_TERMS = [
@@ -29,6 +33,24 @@ function canonical(term) {
 
 export default {
   async email(message, env, ctx) {
+    // ── sender gate ────────────────────────────────────────────────
+    const from = (message.from || "").toLowerCase();
+
+    const allowed = (env.FORWARDED_EMAILS || "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+
+    const isScholar = from.endsWith("@google.com"); // scholaralerts-noreply@google.com
+    const isForwarder = allowed.includes(from);
+
+    if (!isScholar && !isForwarder) {
+      console.log(`Rejected mail from ${from}`);
+      message.setReject("Sender not allowed");
+      return;
+    }
+
+    // ── parse + store ──────────────────────────────────────────────
     const raw = await streamToString(message.raw);
     const subject = message.headers.get("subject") || "";
 
@@ -51,7 +73,7 @@ export default {
       await upsertPaper(env.research, p, tag, subject);
     }
 
-    console.log(`Stored ${papers.length} paper(s) under tag "${tag}".`);
+    console.log(`Stored ${papers.length} paper(s) under tag "${tag}" (from ${from}).`);
   },
 };
 
@@ -101,6 +123,10 @@ function unwrapScholarLink(href) {
 }
 
 function deriveTag(subject) {
+  // Strip forwarding prefixes so "Fwd: Dark Triad - new results"
+  // tags the same as a direct alert.
+  subject = subject.replace(/^\s*(?:(?:fwd?|fw|re)\s*:\s*)+/i, "");
+
   // Subjects look like:  'New articles in the topic "Dark Triad"'
   //                 or:  'Dark Triad - new results'
   const quoted = subject.match(/[""']([^""']+)[""']/);

@@ -97,3 +97,18 @@ footer {
 footer a { color: var(--accent); text-decoration: none; }
 footer a:hover { text-decoration: underline; }
 @media (max-width: 540px){ footer { padding: 22px 18px; } }
+
+/* ── per-section carousel: 3 cards + paging arrows ── */
+.carousel { display: flex; align-items: stretch; gap: 8px; }
+.carousel .grid { flex: 1; min-width: 0; grid-template-columns: repeat(3, 1fr); }
+.navbtn { flex: 0 0 46px; background: transparent; border: none; color: var(--ink);
+  font-size: 34px; line-height: 1; cursor: pointer; padding: 0; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .12s, background .12s, opacity .12s; }
+.navbtn:hover:not(:disabled) { color: var(--accent); background: var(--card); }
+.navbtn:disabled { opacity: .15; cursor: default; }
+.navbtn:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 860px) {
+  .carousel .grid { grid-template-columns: 1fr; }
+  .navbtn { flex-basis: 34px; font-size: 27px; }
+}

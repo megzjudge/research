@@ -29,10 +29,6 @@ by which Scholar alerts you create.
 
 ## Setup
 
-Steps 1–6 stand up ingestion; steps 7–9 stand up the website.
-Throughout, replace placeholders like `<worker-name>`, `<your-db>`, and
-`<yourdomain.com>` with your own names.
-
 ### 1 · Create your Google Scholar alerts
 
 For each topic you want to track:

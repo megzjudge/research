@@ -158,7 +158,7 @@ your-repo/                          # ← syncs to GitHub
 
 ## Database schema
 
-# Block 1:
+### Block 1:
 ```
 sql-- papers: one row per unique paper (de-duped on link)
 CREATE TABLE IF NOT EXISTS papers (
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS papers (
 );
 ```
 
-# Block 2:
+### Block 2:
 ```
 sql-- tags: links a paper to the search term(s) that surfaced it
 CREATE TABLE IF NOT EXISTS tags (
@@ -184,17 +184,17 @@ CREATE TABLE IF NOT EXISTS tags (
 );
 ```
 
-# Block 3:
+### Block 3:
 ```
 sqlCREATE INDEX IF NOT EXISTS idx_tags_tag   ON tags(tag);
 ```
 
-# Block 4:
+### Block 4:
 ```
 sqlCREATE INDEX IF NOT EXISTS idx_papers_seen ON papers(first_seen DESC);
 ```
 
-# Block 5:
+### Block 5:
 ```
 sql-- Full-text search over title + authors + snippet
 CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
@@ -203,7 +203,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
 );
 ```
 
-# Block 6:
+### Block 6:
 ```
 sqlCREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
   INSERT INTO papers_fts(rowid, title, authors, snippet)
@@ -211,7 +211,7 @@ sqlCREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
 END;
 ```
 
-# Block 7:
+### Block 7:
 ```
 sqlCREATE TRIGGER IF NOT EXISTS papers_ad AFTER DELETE ON papers BEGIN
   INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
@@ -219,7 +219,7 @@ sqlCREATE TRIGGER IF NOT EXISTS papers_ad AFTER DELETE ON papers BEGIN
 END;
 ```
 
-# Block 8:
+### Block 8:
 ```
 sqlCREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
   INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
@@ -229,7 +229,7 @@ sqlCREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
 END;
 ```
 
-# Block 9:
+### Block 9:
 ```
 sql-- ── Section curation (display state for the grid) ──────────────────
 CREATE TABLE IF NOT EXISTS sections (
@@ -242,7 +242,7 @@ CREATE TABLE IF NOT EXISTS sections (
 );
 ```
 
-# Block 10
+### Block 10
 
 Add in your own scholar alerts here.
 You can change it to 1, 2, 3, 4, 5 or whatever you like as well from 10, 20, 30, etc.
@@ -275,7 +275,7 @@ SELECT title, authors, link, alert_subject FROM papers;
 
 This should print out Title, Authors, Link, Alert Subject.
 
-# (Optional) Block 11:
+### (Optional) Block 11:
 
 Sometimes two Scholar alerts belong in the same bucket (e.g. "Dark Triad"
 and "Dark Tetrad", or "Big 5" and "Big Five").

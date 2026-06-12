@@ -6,8 +6,8 @@ Turn Google Scholar alert emails into a searchable, auto-sorting research websit
 ## How it works
 ```
    ┌─────────────┐      ┌──────────────────┐      ┌─────────────┐      ┌──────────────┐
-   │   Google    │      │   Email Worker   │      │     D1      │      │    Pages     │
-   │   Scholar   │─────▶│  (parse + tag)   │─────▶│   database  │◀────▶│     site     │
+   │   Google    │      │   Email Worker   │      │    D1       │      │    Pages     │
+   │   Scholar   │─────▶│  (parse + tag)   │─────▶│  database   │◀────▶│     site     │
    │   alert     │ mail │                  │ write│             │ read │ (grid+search)│
    └─────────────┘      └──────────────────┘      └─────────────┘      └──────────────┘
 ```

@@ -135,7 +135,7 @@ or
 
 ### 11 · Add code to github
 
-1. Download each file from this Github and upload to your own github.
+1. Download each file from this Github and upload to your own Github.
 2. Feel free to change images/icon.png to whatever you want to use.
 3. Edit the Index.html to have the website state your website's details in the <head> :)
 

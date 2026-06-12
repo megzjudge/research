@@ -158,7 +158,7 @@ your-repo/                          # ← syncs to GitHub
 
 ## Database schema
 
-Block 1:
+# Block 1:
 ```
 sql-- papers: one row per unique paper (de-duped on link)
 CREATE TABLE IF NOT EXISTS papers (
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS papers (
 );
 ```
 
-Block 2:
+# Block 2:
 ```
 sql-- tags: links a paper to the search term(s) that surfaced it
 CREATE TABLE IF NOT EXISTS tags (
@@ -184,17 +184,17 @@ CREATE TABLE IF NOT EXISTS tags (
 );
 ```
 
-Block 3:
+# Block 3:
 ```
 sqlCREATE INDEX IF NOT EXISTS idx_tags_tag   ON tags(tag);
 ```
 
-Block 4:
+# Block 4:
 ```
 sqlCREATE INDEX IF NOT EXISTS idx_papers_seen ON papers(first_seen DESC);
 ```
 
-Block 5:
+# Block 5:
 ```
 sql-- Full-text search over title + authors + snippet
 CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
@@ -203,7 +203,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
 );
 ```
 
-Block 6:
+# Block 6:
 ```
 sqlCREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
   INSERT INTO papers_fts(rowid, title, authors, snippet)
@@ -211,7 +211,7 @@ sqlCREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
 END;
 ```
 
-Block 7:
+# Block 7:
 ```
 sqlCREATE TRIGGER IF NOT EXISTS papers_ad AFTER DELETE ON papers BEGIN
   INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
@@ -219,7 +219,7 @@ sqlCREATE TRIGGER IF NOT EXISTS papers_ad AFTER DELETE ON papers BEGIN
 END;
 ```
 
-Block 8:
+# Block 8:
 ```
 sqlCREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
   INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
@@ -229,7 +229,7 @@ sqlCREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
 END;
 ```
 
-Block 9:
+# Block 9:
 ```
 sql-- ── Section curation (display state for the grid) ──────────────────
 CREATE TABLE IF NOT EXISTS sections (
@@ -242,7 +242,9 @@ CREATE TABLE IF NOT EXISTS sections (
 );
 ```
 
-Block 10 (add in your own scholar alerts here):
+# Block 10
+
+Add in your own scholar alerts here.
 ```
 sql-- ── Starter sections ───────────────────────────────────────────────
 -- "Big 5" is intentionally absent: the Worker canonicalizes it to "Big Five".
@@ -271,3 +273,76 @@ SELECT title, authors, link, alert_subject FROM papers;
 ```
 
 This should print out Title, Authors, Link, Alert Subject.
+
+# (Optional) Block 11:
+
+Sometimes two Scholar alerts belong in the same bucket (e.g. "Dark Triad"
+and "Dark Tetrad", or "Big 5" and "Big Five").
+
+Most of this happens in the **Step 10 · Edit Email Worker** code right at the top of the file:
+
+```
+// Phrases recognized in alert subjects (case-insensitive, matched anywhere).
+const KNOWN_TERMS = [
+  "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
+  "Big Five", "Big 5", "MBTI", "Myers-Briggs", "Myers Briggs",
+  "HEXACO", "Sociosexuality",
+];
+
+// Map variant spellings (lowercase) to one canonical tag so they share a
+// section. Terms with no entry here pass through unchanged.
+const TERM_ALIASES = {
+  "big 5": "Big Five",            // spelling variants → Big Five
+  "big five": "Big Five",         // spelling variants → Big Five
+  "myers-briggs": "MBTI",         // spelling variants → MBTI
+  "myers briggs": "MBTI",         // spelling variants → MBTI
+  "dark triad": "Dark Tetrad",    // editorial merge: Triad + Tetrad share one section
+};
+```
+
+Edit this section as you see fit at any time in the worker.js.
+
+To add new terms in the D1:
+
+```
+INSERT OR IGNORE INTO sections (tag, sort_order) VALUES ('New Term', 90);
+```
+
+For the *80* here, click on Sections within your table and you can see, just add in the next sequential number you have used.
+
+  ('Dark Tetrad',       10),
+  ('Dark Triad',        20),
+  ('Machiavellianism',  30),
+  ('Industriousness',   40),
+  ('Big Five',          50),
+  ('MBTI',              60),
+  ('HEXACO',            70),
+  ('Sociosexuality',    80);
+
+So for me the *New Term* would be *90*.
+
+If you have already added terms you wish to merge, add them first into the **Step 10 · Edit Email Worker** above in :
+
+```
+"big 5": "Big Five",            // spelling variants → Big Five
+```
+Then in the D1 Table:
+
+Merge them:
+```
+-- COPY: tag the old topic's papers with the surviving topic
+INSERT OR IGNORE INTO tags (paper_id, tag)
+SELECT paper_id, 'Topic You Want' FROM tags WHERE tag = 'Old Term';
+```
+
+Remove old tag:
+```
+-- DELETE: remove the old tag rows
+DELETE FROM tags WHERE tag = 'Old Term';
+```
+
+Remove old section:
+```
+-- COSMETIC: remove the old topic's curation row
+DELETE FROM sections WHERE tag = 'Old Term';
+```

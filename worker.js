@@ -22,11 +22,12 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v7 — multi-part scan, SafeLinks unwrap, charset-aware decode (2026-06-11)";
+const VERSION = "worker v9 — Myers Briggs variant matching (2026-06-12)";
 
 const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
-  "Big Five", "Big 5", "MBTI", "Myers-Briggs", "HEXACO", "Sociosexuality",
+  "Big Five", "Big 5", "MBTI", "Myers-Briggs", "Myers Briggs",
+  "HEXACO", "Sociosexuality",
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -35,6 +36,7 @@ const TERM_ALIASES = {
   "big five": "Big Five",
   "myers-briggs": "MBTI",
   "myers briggs": "MBTI",
+  "dark triad": "Dark Tetrad",   // merge: Triad + Tetrad share one section
 };
 
 function canonical(term) {

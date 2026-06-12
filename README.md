@@ -242,7 +242,7 @@ CREATE TABLE IF NOT EXISTS sections (
 );
 ```
 
-Block 10:
+Block 10 (add in your own scholar alerts here):
 ```
 sql-- ── Starter sections ───────────────────────────────────────────────
 -- "Big 5" is intentionally absent: the Worker canonicalizes it to "Big Five".
@@ -256,3 +256,18 @@ INSERT OR IGNORE INTO sections (tag, sort_order) VALUES
   ('HEXACO',            70),
   ('Sociosexuality',    80);
 ```
+
+You can verify them with:
+
+```
+SELECT (SELECT COUNT(*) FROM papers) AS papers,
+       (SELECT COUNT(*) FROM sections) AS sections;
+```
+
+Output should be papers = 0, sections = 8 (the number of rows have added in Block 10, I have 8 here as the default for me).
+
+```
+SELECT title, authors, link, alert_subject FROM papers;
+```
+
+This should print out Title, Authors, Link, Alert Subject.

@@ -51,9 +51,8 @@ after signing in:
 In the Cloudflare dashboard:
 
 1. Click **Compute (Workers)** in the left-hand menu (or **Workers & Pages**).
-2. Click **Create application**, then **Looking to deploy Pages? Get started** at the bottom.
-3. Click **Start with Hello World!**
-4. Change the worker name if you like, click Deploy.
+2. Click **Create application** then click **Start with Hello World!**
+3. Change the worker name if you like, click Deploy.
 
 ### 5 · Point Email Routing at the Worker
 

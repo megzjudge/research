@@ -105,11 +105,15 @@ function initCarousel(sec, s) {
 }
 
 function cardHtml(p) {
+  const tags = (p.tags && p.tags.length)
+    ? `<span class="cardtags">${p.tags.map(t => `<button class="tagchip" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</span>`
+    : "";
   return `<article class="cardx">
     <a class="ttl" href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.title)}</a>
     ${p.authors ? `<p class="auth">${esc(p.authors)}</p>` : ""}
     ${p.snippet ? `<p class="snip">${esc(p.snippet)}</p>` : ""}
     <span class="when">${ago(p.first_seen)}</span>
+    ${tags}
   </article>`;
 }
 
@@ -138,6 +142,14 @@ elQ.addEventListener("input", () => {
     const q = elQ.value.trim();
     if (q) runSearch(q); else loadSections();
   }, 220);
+});
+
+// Clicking a section chip on a search-result card filters to that section.
+elSections.addEventListener("click", (e) => {
+  const chip = e.target.closest(".tagchip");
+  if (!chip) return;
+  elQ.value = "";
+  runSearch("", chip.getAttribute("data-tag"));
 });
 
 async function runSearch(q, tag) {

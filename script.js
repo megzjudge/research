@@ -1,10 +1,13 @@
-const PER = 6;                       // cards shown per section before "view all"
+const PAGE = 3;                      // cards visible per section at a time
+const FETCH = 24;                    // papers loaded per section (API cap)
 const elSections = document.getElementById("sections");
 const elRail = document.getElementById("railnav");
 const elStatus = document.getElementById("status");
 const elQ = document.getElementById("q");
 const elNew = document.getElementById("newtag");
 const elAdd = document.getElementById("addbtn");
+
+const pageOf = new Map();            // tag -> current carousel page
 
 function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function slug(s){ return "sec-" + (s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
@@ -17,11 +20,11 @@ function ago(iso){
   return Math.floor(days/365)+"y ago";
 }
 
-/* ── default view: sections of cards ── */
+/* ── default view: sections of cards, 3 at a time with arrows ── */
 async function loadSections() {
   elStatus.textContent = "loading…";
   try {
-    const r = await fetch(`/api/sections?per=${PER}`);
+    const r = await fetch(`/api/sections?per=${FETCH}`);
     const { sections = [] } = await r.json();
     renderRail(sections);
     renderSections(sections);
@@ -49,11 +52,14 @@ function renderSections(sections) {
     sec.className = "section";
     sec.id = slug(s.tag);
 
-    const cards = (s.papers || []).map(cardHtml).join("");
     const body = s.count === 0
       ? `<p class="sec-empty">No papers yet — waiting on the first alert.</p>`
-      : `<div class="grid">${cards}</div>` +
-        (s.count > PER ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "");
+      : `<div class="carousel">
+           <button class="navbtn prev" aria-label="previous papers">&#10094;</button>
+           <div class="grid grid-page"></div>
+           <button class="navbtn next" aria-label="more papers">&#10095;</button>
+         </div>` +
+        (s.count > FETCH ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "");
 
     sec.innerHTML = `
       <div class="sechead">
@@ -66,8 +72,36 @@ function renderSections(sections) {
         </span>
       </div>${body}`;
     elSections.appendChild(sec);
+    if (s.count > 0) initCarousel(sec, s);
   }
   wireSectionActions();
+}
+
+/* ── carousel: page through a section's papers, PAGE at a time ── */
+function initCarousel(sec, s) {
+  const papers = s.papers || [];
+  const grid = sec.querySelector(".grid-page");
+  const prev = sec.querySelector(".navbtn.prev");
+  const next = sec.querySelector(".navbtn.next");
+  const maxPage = Math.max(0, Math.ceil(papers.length / PAGE) - 1);
+
+  // Nothing to page through? Hide the arrows, show the cards.
+  if (papers.length <= PAGE) {
+    prev.style.display = "none";
+    next.style.display = "none";
+  }
+
+  function show(page) {
+    page = Math.min(Math.max(page, 0), maxPage);
+    pageOf.set(s.tag, page);
+    grid.innerHTML = papers.slice(page * PAGE, page * PAGE + PAGE).map(cardHtml).join("");
+    prev.disabled = page <= 0;
+    next.disabled = page >= maxPage;
+  }
+
+  prev.onclick = () => show((pageOf.get(s.tag) || 0) - 1);
+  next.onclick = () => show((pageOf.get(s.tag) || 0) + 1);
+  show(pageOf.get(s.tag) || 0);
 }
 
 function cardHtml(p) {

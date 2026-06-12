@@ -29,19 +29,7 @@ by which Scholar alerts you create.
 
 ## Setup
 
-### 1 · Create your Google Scholar alerts
-
-For each topic you want to track:
-
-1. Run the search on [scholar.google.com](https://scholar.google.com).
-2. Click **Create alert** (envelope icon, lower left of the results).
-3. Give the destination email — you'll create that address in step 5.
-4. Repeat for every topic. Each alert becomes its own section on the site.
-
-> Tip: keep each alert to a single clean topic. The alert's subject line is what
-> the Worker uses as the section name, so one term per alert sorts most cleanly.
-
-### 2 · Create a GitHub repository
+### 1 · Create a GitHub repository
 
 a. Create an account
 
@@ -57,11 +45,11 @@ b. Create the repository
 5. Click Add file, then create new file.
 6. **Name your file** as index.html, you don't need to put anything in it yet, then click **Commit changes**.
 
-### 3 · Register a domain
+### 2 · Register a domain
 
 You need a domain using Cloudflare DNS for the email routing - the left hand menu in [dash.cloudflare.com](https://dash.cloudflare.com)) has Domains, you can register it through Cloudflare there, or you can register it somewhere else and change it to Cloudflare's DNS (MX records for emails).
 
-### 4 · Create the D1 database
+### 3 · Create the D1 database
 
 In the Cloudflare dashboard ([dash.cloudflare.com](https://dash.cloudflare.com)),
 after signing in:
@@ -73,7 +61,7 @@ after signing in:
 5. Open the new database, click **Explore Data** on the right, and apply the
    schema from the bottom of this file — add the paragraph blocks one at a time.
 
-### 5 · Create an Email Worker
+### 4 · Create an Email Worker
 
 In the Cloudflare dashboard:
 
@@ -82,12 +70,35 @@ In the Cloudflare dashboard:
 3. Click **Start with Hello World!**
 4. Change the worker name if you like, click Deploy.
 
-### 6 · Point Email Routing at the Worker
+### 5 · Point Email Routing at the Worker
 
 In Cloudflare:
 
 1. **Domains** then click **yourdomain** then on the left side menu click **Email** then **Email Routing**.
+2. In **Routing rules** create an address, then **Send to an Email**, destination is any random email address you have.
+
+We are doing this first because Google has "accept your alert" emails first. We need to accept these manually because the worker.js isn't coded to receive them.
+
+### 7 · Create your Google Scholar alerts
+
+For each topic you want to track:
+
+1. Run the search on [scholar.google.com](https://scholar.google.com).
+2. Click **Create alert** (envelope icon, lower left of the results).
+3. Give the destination email you created with your cloudflare domain.
+4. Repeat for every topic. Each alert becomes its own section on the site.
+
+> Tip: keep each alert to a single clean topic. The alert's subject line is what
+> the Worker uses as the section name, so one term per alert sorts most cleanly.
+
+### 5 · Point Email Routing at the Worker
+
+After accepting your Alerts emails, back in Cloudflare:
+
+1. **Domains** then click **yourdomain** then on the left side menu click **Email** then **Email Routing**.
 2. In **Routing rules** create an address, then **Send to a Worker**, destination is your Email Worker.
+
+If you create new alerts in the future, you just switch it to your personal domain momentarily and then back to the Worker again. An easy toggle.
 
 ### 7 · Bind the Worker to D1
 

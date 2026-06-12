@@ -264,7 +264,7 @@ SELECT (SELECT COUNT(*) FROM papers) AS papers,
        (SELECT COUNT(*) FROM sections) AS sections;
 ```
 
-Output should be papers = 0, sections = 8 (the number of rows have added in Block 10, I have 8 here as the default for me).
+Output should be papers = 0, sections = 8 (the number of rows you have added in Block 10, I have 8 as the default for me).
 
 ```
 SELECT title, authors, link, alert_subject FROM papers;

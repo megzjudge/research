@@ -1,7 +1,7 @@
 # Scholar Alert Pipeline
 
 
-Turn Google Scholar alert emails into a searchable, auto-sorting research website — no inbox to check, no manual filing. This can be used for any emails you wish to receive. You can build this website with 0 coding knowledge, this will explain step by step to someone with no coding knowledge (AI can help if you get stuck).
+Turn Google Scholar alert emails into a searchable, auto-sorting research website — no inbox to check, no manual filing. This can be used for any emails you wish to receive. You can build this website with 0 coding knowledge, this will explain step by step to someone with no coding knowledge (AI can help if you get stuck). Just download the files and follow the steps below.
 
 
 ```

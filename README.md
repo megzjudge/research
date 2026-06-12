@@ -3,7 +3,7 @@
 
 Turn Google Scholar alert emails into a searchable, auto-sorting research website — no inbox to check, no manual filing. This can be used for any emails you wish to receive. You can build this website with 0 coding knowledge, this will explain step by step to someone with no coding knowledge (AI can help if you get stuck). Just download the files and follow the steps below.
 
-
+## How it works
 ```
    ┌─────────────┐      ┌──────────────────┐      ┌─────────────┐      ┌──────────────┐
    │   Google    │      │   Email Worker   │      │     D1      │      │    Pages     │
@@ -11,20 +11,6 @@ Turn Google Scholar alert emails into a searchable, auto-sorting research websit
    │   alert     │ mail │                  │ write│             │ read │ (grid+search)│
    └─────────────┘      └──────────────────┘      └─────────────┘      └──────────────┘
 ```
-
-## How it works
-
-1. **Scholar emails alert** — one per saved search term.
-2. The **Email Worker** receives it through Cloudflare Email Routing, parses each
-   paper out of the HTML, tags it by the alert subject, removes duplicates, and
-   writes it into a **D1** database.
-3. The **Pages site** reads from the same database and shows the papers as cards,
-   grouped one section per topic, with search and pin / hide / add controls on a page.
-
-You can replace the search terms with anything — the topics are driven entirely
-by which Scholar alerts you create.
-
----
 
 ## Setup
 

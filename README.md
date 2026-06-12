@@ -138,6 +138,21 @@ or
 2. Feel free to change images/icon.png to whatever you want to use.
 3. Edit the Index.html to have the website state your website's details in the <head> :)
 
+### 12 · (optional) Forwarded emails
+
+I had some alerts I wanted to forward through and store in the database from my personal email address.
+
+1. 
+
+1. Go to ([dash.cloudflare.com](https://dash.cloudflare.com)) Cloudflare dashboard, click **Compute**, then **Workers & Pages**
+2. Click the Pages you created in Step 8.
+3. Click **Settings**, scroll down to **Variables and secrets** then click **Add**.
+4. Change Type to Secret, make the variable name FORWARDED_EMAILS then add in the email you will use to forward through the emails with.
+
+This is done so that your Email address cannot be seen by anyone accessing the website. It is not live for anyone to check anywhere.
+The coding for the variable name FORWARDED_EMAILS is already setup in worker.js so you can change the FORWARDED_EMAILS content at anytime and it will continue to function with whatever is in there.
+To change it in the future, click the Edit button, then click Rotate, and put in a new email address.
+
 ---
 
 ## Project layout

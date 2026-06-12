@@ -116,3 +116,11 @@ footer a:hover { text-decoration: underline; }
   .navbtn.prev { left: -9px; }
   .navbtn.next { right: -9px; }
 }
+
+/* ── section chips on search-result cards ── */
+.cardx .cardtags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.tagchip { font-family: var(--mono); font-size: 10px; letter-spacing: .02em;
+  color: var(--accent); background: var(--accent-soft);
+  border: none; border-radius: 3px; padding: 2.5px 7px; cursor: pointer;
+  transition: color .12s, background .12s; }
+.tagchip:hover { color: var(--paper); background: var(--accent); }

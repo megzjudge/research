@@ -152,7 +152,7 @@ your-repo/                          # ← syncs to GitHub
 ├── index.html
 ├── styles.css
 ├── script.js
-├── worker.js 
+├── worker.js                       # ← this is here for you to download, but isn't required on your github but in the worker
 ├── wrangler.toml
 └── functions/api/
     ├── papers.js                   # GET search / filter / paginate

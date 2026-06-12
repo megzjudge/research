@@ -33,7 +33,7 @@ b. Create the repository
 ### 2 · Register a domain
 
 You need a domain using Cloudflare DNS for the email routing - the left hand menu in [dash.cloudflare.com](https://dash.cloudflare.com)) has Domains, you can register it through Cloudflare there, or you can register it somewhere else and change it to Cloudflare's DNS (MX records for emails).
-After setup remember to click **Domains**, then **Overview**, then click your Domain, on the left side click **DNS** then add the automated suggestions for MX.
+After setup remember to click **Domains**, then **Overview**, then click your Domain, on the left side click **DNS** then add the automated suggestions for MX - you could also find these in the **Email Routing** settings later in the Steps.
 
 ### 3 · Create the D1 database
 

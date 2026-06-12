@@ -14,7 +14,7 @@ Turn Google Scholar alert emails into a searchable, auto-sorting research websit
 
 ## How it works
 
-1. **Scholar** emails an alert — one per saved search term.
+1. **Scholar emails alert** — one per saved search term.
 2. The **Email Worker** receives it through Cloudflare Email Routing, parses each
    paper out of the HTML, tags it by the alert subject, removes duplicates, and
    writes it into a **D1** database.

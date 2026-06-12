@@ -245,6 +245,7 @@ CREATE TABLE IF NOT EXISTS sections (
 # Block 10
 
 Add in your own scholar alerts here.
+You can change it to 1, 2, 3, 4, 5 or whatever you like as well from 10, 20, 30, etc.
 ```
 sql-- ── Starter sections ───────────────────────────────────────────────
 -- "Big 5" is intentionally absent: the Worker canonicalizes it to "Big Five".

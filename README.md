@@ -159,15 +159,14 @@ your-repo/                          # ← syncs to GitHub
 ## Database schema
 
 Block 1:
-
 ```
--- papers: one row per unique paper (de-duped on link)
+sql-- papers: one row per unique paper (de-duped on link)
 CREATE TABLE IF NOT EXISTS papers (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   title           TEXT NOT NULL,
   authors         TEXT,
   snippet         TEXT,
-  link            TEXT UNIQUE,          -- de-dup key: same paper across alerts stored once
+  link            TEXT NOT NULL UNIQUE, -- de-dup key: same paper across alerts stored once
   venue           TEXT,
   first_seen      TEXT DEFAULT (datetime('now')),
   alert_subject   TEXT
@@ -175,9 +174,8 @@ CREATE TABLE IF NOT EXISTS papers (
 ```
 
 Block 2:
-
 ```
--- tags: links a paper to the search term(s) that surfaced it
+sql-- tags: links a paper to the search term(s) that surfaced it
 CREATE TABLE IF NOT EXISTS tags (
   paper_id  INTEGER NOT NULL,
   tag       TEXT NOT NULL,              -- the search term that surfaced this paper
@@ -187,21 +185,18 @@ CREATE TABLE IF NOT EXISTS tags (
 ```
 
 Block 3:
-
 ```
-CREATE INDEX IF NOT EXISTS idx_tags_tag   ON tags(tag);
+sqlCREATE INDEX IF NOT EXISTS idx_tags_tag   ON tags(tag);
 ```
 
 Block 4:
-
 ```
-CREATE INDEX IF NOT EXISTS idx_papers_seen ON papers(first_seen DESC);
+sqlCREATE INDEX IF NOT EXISTS idx_papers_seen ON papers(first_seen DESC);
 ```
 
 Block 5:
-
 ```
--- Full-text search over title + authors + snippet
+sql-- Full-text search over title + authors + snippet
 CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
   title, authors, snippet,
   content='papers', content_rowid='id'
@@ -209,28 +204,24 @@ CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
 ```
 
 Block 6:
-
 ```
--- Keep the FTS index in sync with the papers table
-CREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
+sqlCREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
   INSERT INTO papers_fts(rowid, title, authors, snippet)
   VALUES (new.id, new.title, new.authors, new.snippet);
 END;
 ```
 
 Block 7:
-
 ```
-CREATE TRIGGER IF NOT EXISTS papers_ad AFTER DELETE ON papers BEGIN
+sqlCREATE TRIGGER IF NOT EXISTS papers_ad AFTER DELETE ON papers BEGIN
   INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
   VALUES('delete', old.id, old.title, old.authors, old.snippet);
 END;
 ```
 
 Block 8:
-
 ```
-CREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
+sqlCREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
   INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
   VALUES('delete', old.id, old.title, old.authors, old.snippet);
   INSERT INTO papers_fts(rowid, title, authors, snippet)
@@ -239,12 +230,8 @@ END;
 ```
 
 Block 9:
-
 ```
--- ── Section curation (display state for the grid) ──────────────────
--- One row per construct/tag the user wants to govern. Tags without a
--- row here still render with sensible defaults, so this is purely for
--- pinning, ordering, hiding, and pre-creating empty sections.
+sql-- ── Section curation (display state for the grid) ──────────────────
 CREATE TABLE IF NOT EXISTS sections (
   tag        TEXT PRIMARY KEY,          -- matches tags.tag
   label      TEXT,                      -- optional display override
@@ -256,12 +243,9 @@ CREATE TABLE IF NOT EXISTS sections (
 ```
 
 Block 10:
-
 ```
--- ── Starter sections ───────────────────────────────────────────────
--- Pre-create the tracked topics so their (initially empty) sections
--- appear before the first alert arrives. "Big 5" is intentionally
--- absent: the Worker canonicalizes it to "Big Five".
+sql-- ── Starter sections ───────────────────────────────────────────────
+-- "Big 5" is intentionally absent: the Worker canonicalizes it to "Big Five".
 INSERT OR IGNORE INTO sections (tag, sort_order) VALUES
   ('Dark Tetrad',       10),
   ('Dark Triad',        20),

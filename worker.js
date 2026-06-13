@@ -22,12 +22,13 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v14 — title-based dedup catch-all for cross-host dupes (2026-06-13)";
+const VERSION = "worker v15 — bisexuality term merge (2026-06-13)";
 
 const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
   "Big Five", "Big 5", "MBTI", "Myers-Briggs", "Myers Briggs",
   "HEXACO", "Sociosexuality",
+  "Bisexual women", "Bisexuality", "Bisexual",
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -37,6 +38,8 @@ const TERM_ALIASES = {
   "myers-briggs": "MBTI",
   "myers briggs": "MBTI",
   "dark triad": "Dark Tetrad",   // merge: Triad + Tetrad share one section
+  "bisexual": "Bisexuality",     // merge: bisexual / bisexual women → Bisexuality
+  "bisexual women": "Bisexuality",
 };
 
 function canonical(term) {

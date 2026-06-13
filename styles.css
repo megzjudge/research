@@ -132,3 +132,13 @@ footer a:hover { text-decoration: underline; }
   .cardx a.ttl { font-size: 14.5px; }
   .cardx .snip { font-size: 12px; }
 }
+
+/* ── triage: card footer actions + starred section ── */
+.cardfoot { margin-top: 11px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cardfoot .when { margin-top: 0; }
+.cardacts { display: flex; gap: 2px; }
+.cardacts button { font-size: 13px; line-height: 1; color: var(--faint);
+  background: transparent; border: none; cursor: pointer; padding: 2px 5px;
+  border-radius: 3px; transition: color .12s; }
+.cardacts button:hover { color: var(--accent); }
+.sechead .star { color: var(--accent); }

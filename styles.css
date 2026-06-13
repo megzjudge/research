@@ -147,3 +147,9 @@ footer a:hover { text-decoration: underline; }
 /* (search/trash use the flexible .grid above; only the carousel is fixed) */
 .carousel .grid-page { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 860px) { .carousel .grid-page { grid-template-columns: repeat(2, 1fr); } }
+
+/* ── Boolean operators in section headings: small + grey ── */
+.sechead h2 .op, .railnav .op {
+  font-style: italic; font-weight: 400; color: var(--faint);
+  font-size: .7em; letter-spacing: .03em; margin: 0 .15em; vertical-align: baseline;
+}

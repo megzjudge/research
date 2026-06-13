@@ -153,3 +153,17 @@ footer a:hover { text-decoration: underline; }
   font-style: italic; font-weight: 400; color: var(--faint);
   font-size: .7em; letter-spacing: .03em; margin: 0 .15em; vertical-align: baseline;
 }
+
+/* ── per-card "+" add-tag chip and dropdown ── */
+.addtag-wrap { position: relative; display: inline-block; }
+.tagchip.tagadd { font-weight: 600; padding: 2.5px 8px; }
+.tagmenu { position: absolute; left: 0; top: calc(100% + 4px); z-index: 20;
+  background: var(--card); border: 1px solid var(--line-strong); border-radius: 5px;
+  padding: 4px; min-width: 150px; max-height: 240px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 2px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+.tagmenu[hidden] { display: none; }
+.tagmenu-item { text-align: left; font-family: var(--mono); font-size: 11px;
+  color: var(--ink); background: transparent; border: none; border-radius: 3px;
+  padding: 5px 8px; cursor: pointer; white-space: nowrap; }
+.tagmenu-item:hover { background: var(--accent-soft); color: var(--accent); }

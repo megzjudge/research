@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v11 — link normalization to de-dup across searches (2026-06-13)";
+const VERSION = "worker v12 — canonicalize link encoding + param order for de-dup (2026-06-13)";
 
 const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
@@ -277,6 +277,17 @@ function normalizeLink(link) {
       return `${u.origin}${u.pathname}?${qs}`;
     }
   }
+
+  // Canonicalize the surviving query: sort params and re-encode uniformly,
+  // so the SAME link de-dupes regardless of param order or whether the
+  // sender percent-encoded characters like ':' (%3A vs :). EBSCO and other
+  // hosts deliver the same URL with different encoding across alerts.
+  const pairs = [...u.searchParams.entries()].sort(
+    (a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1])
+  );
+  u.search = pairs.length
+    ? "?" + pairs.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&")
+    : "";
 
   // Drop a trailing "?" if we emptied the query string.
   const out = u.toString();

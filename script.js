@@ -12,6 +12,7 @@ const elAdd = document.getElementById("addbtn");
 const pageOf = new Map();            // tag -> current carousel page
 let view = "sections";               // sections | search | trash
 let authPw = null;                   // cached password for this session (not stored)
+let allTags = [];                    // every section tag, for the per-card "+" dropdown
 
 // All writes go through here: prompts for the password once, caches it for
 // the session, sends it in the body, and re-prompts if the server rejects it
@@ -102,6 +103,7 @@ async function loadSections() {
   try {
     const r = await fetch(`/api/sections?per=${FETCH}`);
     const { starred = [], sections = [], trash_count = 0 } = await r.json();
+    allTags = sections.map((s) => s.tag).sort((a, b) => a.localeCompare(b));
     renderRail(sections, starred.length, trash_count);
     renderAll(starred, sections);
     elStatus.textContent = (sections.length || starred.length) ? "" : "No constructs yet — add one on the left.";
@@ -228,9 +230,17 @@ window.addEventListener("resize", () => {
 
 /* ── cards ── */
 function cardHtml(p) {
-  const tags = (p.tags && p.tags.length)
-    ? `<span class="cardtags">${p.tags.map(t => `<button class="tagchip" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</span>`
+  const chips = (p.tags || []).map(t => `<button class="tagchip" data-tag="${esc(t)}">${esc(t)}</button>`).join("");
+  // "+" chip: only when we know the paper id and there are tags it doesn't yet have.
+  const has = new Set(p.tags || []);
+  const addable = allTags.filter(t => !has.has(t));
+  const plus = (p.id && addable.length)
+    ? `<span class="addtag-wrap">
+         <button class="tagchip tagadd" data-addtag="${p.id}" title="add to a section">+</button>
+         <span class="tagmenu" hidden>${addable.map(t => `<button class="tagmenu-item" data-id="${p.id}" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</span>
+       </span>`
     : "";
+  const tags = (chips || plus) ? `<span class="cardtags">${chips}${plus}</span>` : "";
   return `<article class="cardx">
     <a class="ttl" href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.title)}</a>
     ${p.authors ? `<p class="auth">${esc(p.authors)}</p>` : ""}
@@ -253,11 +263,36 @@ function cardActs(p) {
   return `<span class="cardacts">${b("starred","☆","star")}${b("trash","✕","trash")}</span>`;
 }
 
-/* ── one delegated listener: tag chips + triage buttons ── */
+/* ── one delegated listener: tag chips + "+" menu + triage buttons ── */
 elSections.addEventListener("click", async (e) => {
-  const chip = e.target.closest(".tagchip");
+  // "+" chip: toggle this card's dropdown (and close any others).
+  const plus = e.target.closest("[data-addtag]");
+  if (plus) {
+    const menu = plus.parentElement.querySelector(".tagmenu");
+    const wasHidden = menu.hidden;
+    closeAllTagMenus();
+    menu.hidden = !wasHidden;
+    return;
+  }
+
+  // Picking a tag from the dropdown.
+  const item = e.target.closest(".tagmenu-item");
+  if (item) {
+    const r = await postWrite("/api/papers", {
+      action: "tag",
+      id: +item.getAttribute("data-id"),
+      tag: item.getAttribute("data-tag"),
+    });
+    closeAllTagMenus();
+    if (r && r.ok) refresh();
+    return;
+  }
+
+  // A real tag chip (not the "+"): filter to that section.
+  const chip = e.target.closest(".tagchip:not(.tagadd)");
   if (chip) { elQ.value = ""; runSearch("", chip.getAttribute("data-tag")); return; }
 
+  // Triage buttons.
   const act = e.target.closest("[data-pstatus]");
   if (!act) return;
   act.disabled = true;
@@ -268,6 +303,15 @@ elSections.addEventListener("click", async (e) => {
     });
   } catch (err) { /* refresh shows the truth either way */ }
   refresh();
+});
+
+function closeAllTagMenus() {
+  elSections.querySelectorAll(".tagmenu").forEach((m) => { m.hidden = true; });
+}
+
+// Click outside any menu closes them.
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".addtag-wrap")) closeAllTagMenus();
 });
 
 function refresh() {

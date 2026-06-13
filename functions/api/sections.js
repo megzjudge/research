@@ -102,6 +102,14 @@ export async function onRequestPost({ request, env }) {
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
 
+  // Write guard: requires the AUTH secret. The password is sent in the
+  // request body and checked here server-side, so it never appears in the
+  // downloadable frontend JS and can't be bypassed by calling the API
+  // directly. Set AUTH as a secret on the Pages project.
+  if (!env.AUTH || body.auth !== env.AUTH) {
+    return json({ error: "unauthorized" }, 401);
+  }
+
   const tag = (body.tag || "").trim();
   if (!tag) return json({ error: "tag required" }, 400);
 

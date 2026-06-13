@@ -89,11 +89,34 @@ export async function onRequestPost({ request, env }) {
   }
 
   const id = parseInt(body.id, 10);
-  const status = (body.status || "").trim();
   if (!Number.isFinite(id)) return json({ error: "id required" }, 400);
-  if (!STATUSES.includes(status)) return json({ error: "status must be inbox|starred|trash" }, 400);
+
+  // Action: "tag" (add/remove a tag) or "status" (triage). Defaults to
+  // status for backward compatibility with existing star/trash calls.
+  const action = body.action || "status";
 
   try {
+    if (action === "tag") {
+      const tag = (body.tag || "").trim();
+      if (!tag) return json({ error: "tag required" }, 400);
+      if (body.remove) {
+        await env.research
+          .prepare(`DELETE FROM tags WHERE paper_id = ? AND tag = ?`)
+          .bind(id, tag)
+          .run();
+        return json({ ok: true, id, tag, removed: true });
+      }
+      await env.research
+        .prepare(`INSERT INTO tags (paper_id, tag) VALUES (?, ?)
+                  ON CONFLICT(paper_id, tag) DO NOTHING`)
+        .bind(id, tag)
+        .run();
+      return json({ ok: true, id, tag, added: true });
+    }
+
+    // status action
+    const status = (body.status || "").trim();
+    if (!STATUSES.includes(status)) return json({ error: "status must be inbox|starred|trash" }, 400);
     await env.research
       .prepare(`UPDATE papers SET status = ? WHERE id = ?`)
       .bind(status, id)

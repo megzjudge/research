@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v12 — canonicalize link encoding + param order for de-dup (2026-06-13)";
+const VERSION = "worker v14 — title-based dedup catch-all for cross-host dupes (2026-06-13)";
 
 const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
@@ -53,7 +53,28 @@ function parseAddress(headerValue) {
 
 export default {
   // Lets you check what's deployed by visiting the worker's URL in a browser.
-  async fetch() {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    // One-shot maintenance: normalize every stored link to the canonical
+    // form v12 produces, merging any rows that collide. Guarded by a token
+    // so it can't fire by accident. Visit:
+    //   https://<worker>/backfill-links?token=YOUR_SECRET
+    // Set BACKFILL_TOKEN as a secret first; remove this block when done.
+    if (url.pathname === "/backfill-links") {
+      if (!env.BACKFILL_TOKEN || url.searchParams.get("token") !== env.BACKFILL_TOKEN) {
+        return new Response("forbidden", { status: 403 });
+      }
+      try {
+        const report = await backfillLinks(env.research);
+        return new Response(JSON.stringify(report, null, 2), {
+          headers: { "content-type": "application/json; charset=utf-8" },
+        });
+      } catch (e) {
+        return new Response("backfill error: " + String(e), { status: 500 });
+      }
+    }
+
     return new Response(VERSION, {
       headers: { "content-type": "text/plain; charset=utf-8" },
     });
@@ -257,12 +278,28 @@ function normalizeLink(link) {
   let u;
   try { u = new URL(link); } catch { return link; }
 
+  // Canonicalize the PATH's percent-encoding: decode it fully, then re-encode
+  // with a single consistent scheme. This collapses links that differ only by
+  // whether a literal char in the path was encoded — e.g. JACC DOIs with
+  // "(26)" vs "%2826%29", or stray "{"/"}" vs "%7B"/"%7D". encodeURI leaves
+  // path-legal chars (including parens) as-is, giving one stable form.
+  try {
+    let decoded = u.pathname;
+    // Fully decode (may be doubly-encoded), guarding against malformed %.
+    for (let i = 0; i < 3 && /%[0-9A-Fa-f]{2}/.test(decoded); i++) {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) break;
+      decoded = next;
+    }
+    u.pathname = encodeURI(decoded);
+  } catch { /* leave path as-is on malformed encoding */ }
+
   // Always-junk params, safe to drop on any host.
   const DROP = new Set([
     "dq", "ots", "sig", "ei", "scisig", "oi", "hl", "lr", "sa", "usg",
     "ved", "source", "cd", "client", "scisbd", "as_sdt", "gbv", "gbpv",
     "newbks", "redir_esc", "utm_source", "utm_medium", "utm_campaign",
-    "utm_term", "utm_content", "__cf_chl_tk", "__cf_chl_rt_tk",
+    "utm_term", "utm_content", "__cf_chl_tk", "__cf_chl_rt_tk", "s",
   ]);
   for (const k of [...u.searchParams.keys()]) {
     if (DROP.has(k)) u.searchParams.delete(k);
@@ -322,8 +359,24 @@ function matchKnownTerm(text) {
 
 /* ------------------------- storage ------------------------- */
 
+// Conservative title key for de-dup: lowercase, strip punctuation/accents,
+// collapse whitespace. Only used to match papers when their LINKS differ
+// (e.g. same work via Springer /chapter/ vs /content/pdf/). Guarded by a
+// length threshold so short generic titles ("Introduction", "Editorial")
+// never auto-merge distinct papers.
+const TITLE_DEDUP_MIN_LEN = 15;
+
+function titleKey(t) {
+  return (t || "")
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "") // drop accents
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
 async function upsertPaper(db, p, tag, subject) {
-  // Insert paper; ignore if link already present (de-dup). Then fetch id.
+  // 1 · Primary de-dup on the (normalized) link.
   await db
     .prepare(
       `INSERT INTO papers (title, authors, snippet, link, venue, alert_subject)
@@ -333,10 +386,35 @@ async function upsertPaper(db, p, tag, subject) {
     .bind(p.title, p.authors, p.snippet, p.link, p.venue, subject)
     .run();
 
-  const row = await db
+  let row = await db
     .prepare(`SELECT id FROM papers WHERE link = ?`)
     .bind(p.link)
     .first();
+
+  // 2 · Secondary de-dup on title — catches the SAME paper arriving via a
+  //     genuinely different URL (cross-host), which link-dedup can't see.
+  //     Only for distinctive (long enough) titles, to avoid merging two
+  //     different papers that happen to share a short generic title.
+  const key = titleKey(p.title);
+  if (key.length >= TITLE_DEDUP_MIN_LEN) {
+    const existing = (await db
+      .prepare(`SELECT id, title, link FROM papers ORDER BY id ASC`)
+      .all()).results || [];
+    // Find the lowest-id existing paper with the same title key, that ISN'T
+    // the row we just inserted/matched.
+    let twin = null;
+    for (const e of existing) {
+      if (titleKey(e.title) === key) { twin = e; break; }
+    }
+    if (twin && (!row || twin.id !== row.id)) {
+      // A pre-existing paper with this title exists. Tag IT, and remove the
+      // duplicate row we may have just inserted under the new link.
+      if (row && row.id !== twin.id) {
+        await db.prepare(`DELETE FROM papers WHERE id = ?`).bind(row.id).run();
+      }
+      row = twin;
+    }
+  }
 
   if (!row) return;
 
@@ -345,6 +423,82 @@ async function upsertPaper(db, p, tag, subject) {
               ON CONFLICT(paper_id, tag) DO NOTHING`)
     .bind(row.id, tag)
     .run();
+}
+
+/* ------------------------- maintenance ------------------------- */
+
+// Normalize every paper's link to the canonical form, merging rows that
+// collide after normalization. For each collision group the LOWEST id is
+// kept (preserving manual edits/snippets); its tags absorb the others',
+// a non-inbox status wins over inbox, and the duplicate rows are deleted.
+// Returns a summary of what changed. Idempotent — safe to run twice.
+async function backfillLinks(db) {
+  const all = (await db.prepare(`SELECT id, link, status FROM papers ORDER BY id ASC`).all()).results || [];
+
+  // Group by normalized link (rows already sorted ascending, so the first
+  // id seen for each normalized link is the lowest = the one we keep).
+  const groups = new Map(); // normLink -> { keep, rows:[{id,status,link}] }
+  for (const r of all) {
+    const norm = normalizeLink(r.link || "");
+    if (!groups.has(norm)) groups.set(norm, { keep: r.id, rows: [] });
+    groups.get(norm).rows.push({ id: r.id, status: r.status, link: r.link });
+  }
+
+  let relinked = 0, merged = 0;
+
+  for (const [norm, g] of groups) {
+    const keep = g.keep;
+    const dups = g.rows.filter((r) => r.id !== keep);
+
+    for (const d of dups) {
+      await db.prepare(
+        `INSERT OR IGNORE INTO tags (paper_id, tag) SELECT ?, tag FROM tags WHERE paper_id = ?`
+      ).bind(keep, d.id).run();
+      if (d.status && d.status !== "inbox") {
+        await db.prepare(
+          `UPDATE papers SET status = ? WHERE id = ? AND status = 'inbox'`
+        ).bind(d.status, keep).run();
+      }
+      await db.prepare(`DELETE FROM papers WHERE id = ?`).bind(d.id).run();
+      merged++;
+    }
+
+    const keptRow = g.rows.find((r) => r.id === keep);
+    if (keptRow && keptRow.link !== norm) {
+      await db.prepare(`UPDATE papers SET link = ? WHERE id = ?`).bind(norm, keep).run();
+      relinked++;
+    }
+  }
+
+  // Second pass: collapse cross-host dupes by title key (same paper, two
+  // genuinely different URLs that link-normalization can't unify). Only
+  // distinctive (long) titles, lowest id kept. Same guard as upsertPaper.
+  let titleMerged = 0;
+  const survivors = (await db.prepare(`SELECT id, title, status FROM papers ORDER BY id ASC`).all()).results || [];
+  const byTitle = new Map(); // titleKey -> keepId
+  for (const r of survivors) {
+    const key = titleKey(r.title);
+    if (key.length < TITLE_DEDUP_MIN_LEN) continue;
+    if (!byTitle.has(key)) { byTitle.set(key, r.id); continue; }
+    const keep = byTitle.get(key);
+    await db.prepare(
+      `INSERT OR IGNORE INTO tags (paper_id, tag) SELECT ?, tag FROM tags WHERE paper_id = ?`
+    ).bind(keep, r.id).run();
+    if (r.status && r.status !== "inbox") {
+      await db.prepare(`UPDATE papers SET status = ? WHERE id = ? AND status = 'inbox'`).bind(r.status, keep).run();
+    }
+    await db.prepare(`DELETE FROM papers WHERE id = ?`).bind(r.id).run();
+    titleMerged++;
+  }
+
+  return {
+    scanned: all.length,
+    unique_after: groups.size,
+    relinked,        // rows whose link was rewritten to canonical form
+    merged,          // duplicate rows folded by matching link
+    title_merged: titleMerged, // cross-host dupes folded by matching title
+    remaining: all.length - merged - titleMerged,
+  };
 }
 
 /* ------------------------- MIME helpers ------------------------- */

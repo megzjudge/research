@@ -62,7 +62,8 @@ export async function onRequestGet({ request, env }) {
       if (s.hidden || s.count === 0) { s.papers = []; continue; }
       const { results } = await env.research
         .prepare(
-          `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status
+          `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
+                  (SELECT group_concat(tag, '|') FROM tags WHERE paper_id = p.id) AS tags
            FROM papers p
            WHERE p.status = 'inbox'
              AND p.id IN (SELECT paper_id FROM tags WHERE tag = ?)
@@ -71,7 +72,7 @@ export async function onRequestGet({ request, env }) {
         )
         .bind(s.tag, per)
         .all();
-      s.papers = results || [];
+      s.papers = (results || []).map((r) => ({ ...r, tags: r.tags ? r.tags.split("|") : [] }));
     }
 
     // Starred papers (their own row on the site), tags included for chips.

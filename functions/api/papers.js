@@ -114,6 +114,25 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: true, id, tag, added: true });
     }
 
+    if (action === "link") {
+      const link = (body.link || "").trim();
+      if (!link) return json({ error: "link required" }, 400);
+      if (!/^https?:\/\//i.test(link)) return json({ error: "link must start with http:// or https://" }, 400);
+      try {
+        await env.research
+          .prepare(`UPDATE papers SET link = ? WHERE id = ?`)
+          .bind(link, id)
+          .run();
+      } catch (e) {
+        // UNIQUE constraint: another paper already has this link.
+        if (/UNIQUE/i.test(String(e))) {
+          return json({ error: "another paper already has that link" }, 409);
+        }
+        throw e;
+      }
+      return json({ ok: true, id, link });
+    }
+
     // status action
     const status = (body.status || "").trim();
     if (!STATUSES.includes(status)) return json({ error: "status must be inbox|starred|trash" }, 400);

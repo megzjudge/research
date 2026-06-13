@@ -26,8 +26,25 @@ export async function onRequestGet({ request, env }) {
   const binds = [];
 
   if (q) {
-    where.push(`p.id IN (SELECT rowid FROM papers_fts WHERE papers_fts MATCH ?)`);
+    // Two matchers, OR'd together:
+    //  1. FTS5 prefix match — fast, handles "connect" → "connectedness".
+    //  2. Substring LIKE on each word — handles MID-word queries that FTS
+    //     can't ("uman" → "Human", "nviron" → "Environmental"), since FTS5
+    //     has no leading-wildcard. Every word must appear somewhere in
+    //     title/authors/snippet (AND across words, substring within each).
+    const words = q.split(/\s+/).filter(Boolean);
+    const likeClauses = words.map(
+      () => `(p.title LIKE ? ESCAPE '\\' OR p.authors LIKE ? ESCAPE '\\' OR p.snippet LIKE ? ESCAPE '\\')`
+    );
+    where.push(
+      `(p.id IN (SELECT rowid FROM papers_fts WHERE papers_fts MATCH ?)
+        OR (${likeClauses.join(" AND ")}))`
+    );
     binds.push(ftsQuery(q));
+    for (const w of words) {
+      const like = `%${escapeLike(w)}%`;
+      binds.push(like, like, like);
+    }
   }
   if (tag) {
     where.push(`p.id IN (SELECT paper_id FROM tags WHERE tag = ?)`);
@@ -90,6 +107,12 @@ function ftsQuery(q) {
     .filter(Boolean)
     .map((t) => `"${t}"*`)
     .join(" ");
+}
+
+// Escape LIKE wildcards so a literal % or _ in the query isn't treated as
+// a pattern. Paired with ESCAPE '\' on the LIKE clauses below.
+function escapeLike(s) {
+  return s.replace(/[\\%_]/g, (c) => "\\" + c);
 }
 
 function json(obj, status = 200) {

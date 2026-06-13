@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v15 — bisexuality term merge (2026-06-13)";
+const VERSION = "worker v17 — canonical flipped to Dark Triad (2026-06-13)";
 
 const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
@@ -37,7 +37,8 @@ const TERM_ALIASES = {
   "big five": "Big Five",
   "myers-briggs": "MBTI",
   "myers briggs": "MBTI",
-  "dark triad": "Dark Tetrad",   // merge: Triad + Tetrad share one section
+  "dark tetrad": "Dark Triad",   // merge: Tetrad folds into Triad (more common term)
+  "machiavellianism": "Dark Triad", // merge: Mach is a Dark Triad component
   "bisexual": "Bisexuality",     // merge: bisexual / bisexual women → Bisexuality
   "bisexual women": "Bisexuality",
 };

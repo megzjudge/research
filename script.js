@@ -1,5 +1,7 @@
-const PAGE = 3;                      // cards visible per section at a time
 const FETCH = 24;                    // papers loaded per section (API cap)
+// Cards shown per carousel page — must match the CSS column count below
+// (.carousel .grid-page), so cards never wrap to a second row.
+const pageSize = () => (window.matchMedia("(max-width: 860px)").matches ? 2 : 3);
 const elSections = document.getElementById("sections");
 const elRail = document.getElementById("railnav");
 const elStatus = document.getElementById("status");
@@ -115,23 +117,21 @@ function renderAll(starred, sections) {
   elSections.querySelectorAll(".section").forEach(el => railObserver.observe(el));
 }
 
-/* ── carousel: page through a section's papers, PAGE at a time ── */
+/* ── carousel: page through a section's papers, pageSize() at a time ── */
 function initCarousel(sec, s) {
   const papers = s.papers || [];
   const grid = sec.querySelector(".grid-page");
   const prev = sec.querySelector(".navbtn.prev");
   const next = sec.querySelector(".navbtn.next");
-  const maxPage = Math.max(0, Math.ceil(papers.length / PAGE) - 1);
-
-  if (papers.length <= PAGE) {
-    prev.style.display = "none";
-    next.style.display = "none";
-  }
 
   function show(page) {
+    const per = pageSize();
+    const maxPage = Math.max(0, Math.ceil(papers.length / per) - 1);
     page = Math.min(Math.max(page, 0), maxPage);
     pageOf.set(s.tag, page);
-    grid.innerHTML = papers.slice(page * PAGE, page * PAGE + PAGE).map(cardHtml).join("");
+    grid.innerHTML = papers.slice(page * per, page * per + per).map(cardHtml).join("");
+    const hideArrows = papers.length <= per;
+    prev.style.display = next.style.display = hideArrows ? "none" : "";
     prev.disabled = page <= 0;
     next.disabled = page >= maxPage;
   }
@@ -139,7 +139,20 @@ function initCarousel(sec, s) {
   prev.onclick = () => show((pageOf.get(s.tag) || 0) - 1);
   next.onclick = () => show((pageOf.get(s.tag) || 0) + 1);
   show(pageOf.get(s.tag) || 0);
+
+  // Re-render this carousel when the desktop/mobile breakpoint flips,
+  // so the page size (3 vs 2) and arrow visibility stay correct.
+  sec._reshow = () => show(pageOf.get(s.tag) || 0);
 }
+
+// Debounced: re-page every carousel on viewport width changes.
+let _rz;
+window.addEventListener("resize", () => {
+  clearTimeout(_rz);
+  _rz = setTimeout(() => {
+    elSections.querySelectorAll(".section").forEach((sec) => sec._reshow && sec._reshow());
+  }, 150);
+});
 
 /* ── cards ── */
 function cardHtml(p) {

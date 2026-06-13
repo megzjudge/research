@@ -258,7 +258,7 @@ function cardActs(p) {
   if (!p.id) return "";
   const b = (status, glyph, label) =>
     `<button data-pstatus="${status}" data-id="${p.id}" title="${label}" aria-label="${label}">${glyph}</button>`;
-  const linkBtn = `<button class="urlbtn" data-editurl="${p.id}" data-link="${esc(p.link)}" title="replace link" aria-label="replace link">🔗</button>`;
+  const linkBtn = `<button class="urlbtn" data-editurl="${p.id}" data-link="${esc(p.link)}" title="replace link" aria-label="replace link">↗</button>`;
   let triage;
   if (p.status === "starred")      triage = b("trash","✕","trash") + b("inbox","★","unstar");
   else if (p.status === "trash")   triage = b("inbox","↩","restore") + b("starred","☆","star");

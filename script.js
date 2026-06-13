@@ -14,6 +14,41 @@ let view = "sections";               // sections | search | trash
 
 function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function slug(s){ return "sec-" + (s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
+
+// Acronyms that should stay fully uppercase in headings.
+const ACRONYMS = new Set(["adhd","mbti","hexaco","ocd","ptsd","iq","eq","big5","asd","bpd"]);
+
+// Prettify a tag for DISPLAY ONLY (the stored tag is never changed).
+// Boolean operators (AND/OR/NOT) render small + grey; the surrounding
+// terms are acronym-uppercased or title-cased. Returns safe HTML:
+// terms are escaped here, operators are known-safe literals.
+// Plain tags with no operator pass through with light title-casing.
+function prettyLabel(raw) {
+  const s = (raw || "").trim();
+  const hasOp = /\b(AND|OR|NOT)\b/i.test(s);
+
+  const term = (word) =>
+    word.replace(/["""']/g, "").split(/\s+/).filter(Boolean).map((w) => {
+      const low = w.toLowerCase();
+      if (ACRONYMS.has(low.replace(/[^a-z0-9]/g, ""))) return esc(w.toUpperCase());
+      return esc(w.charAt(0).toUpperCase() + w.slice(1));
+    }).join(" ");
+
+  if (!hasOp) return term(s);
+
+  // Split on operators, keeping them, then style operators vs terms.
+  return s
+    .split(/\b(AND|OR|NOT)\b/i)
+    .map((part) => {
+      if (/^(AND|OR|NOT)$/i.test(part.trim()) && part.trim()) {
+        return `<small class="op">${part.trim().toLowerCase()}</small>`;
+      }
+      const t = part.trim();
+      return t ? term(t) : "";
+    })
+    .filter(Boolean)
+    .join(" ");
+}
 function ago(iso){
   if(!iso) return "";
   const d = new Date(iso.replace(" ","T")+"Z"); const days = Math.floor((Date.now()-d)/864e5);
@@ -48,7 +83,7 @@ function renderRail(sections, starredCount, trashCount) {
   for (const s of sections) {
     if (s.hidden) continue;
     const li = document.createElement("li");
-    li.innerHTML = `<a href="#${slug(s.tag)}"><span>${esc(s.label)}</span><span class="c">${s.count}</span></a>`;
+    li.innerHTML = `<a href="#${slug(s.tag)}"><span>${prettyLabel(s.label)}</span><span class="c">${s.count}</span></a>`;
     elRail.appendChild(li);
   }
   if (trashCount) {
@@ -102,7 +137,7 @@ function renderAll(starred, sections) {
 
     sec.innerHTML = `
       <div class="sechead">
-        <h2>${esc(s.label)}</h2>
+        <h2>${prettyLabel(s.label)}</h2>
         ${s.pinned ? `<span class="pin">pinned</span>` : ""}
         <span class="count">${s.count}</span>
         <span class="secacts">
@@ -244,7 +279,7 @@ async function runSearch(q, tag) {
     const { papers = [] } = await r.json();
     elSections.innerHTML = `
       <section class="section">
-        <div class="sechead"><h2>${tag ? esc(tag) : "Search"}</h2><span class="count">${papers.length}</span></div>
+        <div class="sechead"><h2>${tag ? prettyLabel(tag) : "Search"}</h2><span class="count">${papers.length}</span></div>
         <div class="grid">${papers.map(cardHtml).join("")}</div>
       </section>`;
     elStatus.textContent = papers.length ? "" : "Nothing matched.";

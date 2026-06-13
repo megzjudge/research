@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v10 — gate matches envelope + From header + bounce domain (2026-06-13)";
+const VERSION = "worker v11 — link normalization to de-dup across searches (2026-06-13)";
 
 const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
@@ -235,10 +235,52 @@ function unwrapLink(href) {
     } catch {
       break;
     }
+    // searchParams.get already percent-decodes, but a doubly-encoded inner
+    // URL (common in Scholar links) may still need one more pass before the
+    // http(s) test recognises it.
+    if (inner && !/^https?:\/\//i.test(inner)) {
+      try { inner = decodeURIComponent(inner); } catch { /* leave as-is */ }
+    }
     if (inner && /^https?:\/\//i.test(inner)) link = inner;
     else break;
   }
-  return link;
+  return normalizeLink(link);
+}
+
+// Strip per-search and per-session query params so the SAME paper arriving
+// via different alert searches (e.g. "big 5" vs "big five") de-dupes to one
+// row. Scholar/Google-Books links carry tracking junk — dq, ots, sig, ei,
+// scisig, oi, hl, lr, sa, usg, ved, source, cd, etc. — that varies per
+// visit; we keep only the stable identifiers. Unknown hosts are left as-is
+// except for these universally-tracking keys.
+function normalizeLink(link) {
+  let u;
+  try { u = new URL(link); } catch { return link; }
+
+  // Always-junk params, safe to drop on any host.
+  const DROP = new Set([
+    "dq", "ots", "sig", "ei", "scisig", "oi", "hl", "lr", "sa", "usg",
+    "ved", "source", "cd", "client", "scisbd", "as_sdt", "gbv", "gbpv",
+    "newbks", "redir_esc", "utm_source", "utm_medium", "utm_campaign",
+    "utm_term", "utm_content", "__cf_chl_tk", "__cf_chl_rt_tk",
+  ]);
+  for (const k of [...u.searchParams.keys()]) {
+    if (DROP.has(k)) u.searchParams.delete(k);
+  }
+
+  // Google Books: the book id (+ page, if present) is the whole identity.
+  if (/(^|\.)books\.google\./i.test(u.hostname)) {
+    const id = u.searchParams.get("id");
+    if (id) {
+      const pg = u.searchParams.get("pg");
+      const qs = pg ? `id=${id}&pg=${pg}` : `id=${id}`;
+      return `${u.origin}${u.pathname}?${qs}`;
+    }
+  }
+
+  // Drop a trailing "?" if we emptied the query string.
+  const out = u.toString();
+  return out.endsWith("?") ? out.slice(0, -1) : out;
 }
 
 function deriveTag(subject) {
@@ -410,4 +452,4 @@ function dedupeByLink(arr) {
 }
 
 // Exported for testing (ignored by the Workers runtime).
-export { parseScholarHtml, extractHtmlBodies, unwrapLink, deriveTag };
+export { parseScholarHtml, extractHtmlBodies, unwrapLink, normalizeLink, deriveTag };

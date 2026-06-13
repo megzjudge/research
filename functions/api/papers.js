@@ -83,6 +83,11 @@ export async function onRequestPost({ request, env }) {
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
 
+  // Write guard — same AUTH secret as /api/sections.
+  if (!env.AUTH || body.auth !== env.AUTH) {
+    return json({ error: "unauthorized" }, 401);
+  }
+
   const id = parseInt(body.id, 10);
   const status = (body.status || "").trim();
   if (!Number.isFinite(id)) return json({ error: "id required" }, 400);

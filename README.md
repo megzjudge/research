@@ -139,6 +139,15 @@ This is done so that your Email address cannot be seen by anyone accessing the w
 The coding for the variable name FORWARDED_EMAILS is already setup in worker.js so you can change the FORWARDED_EMAILS content at anytime and it will continue to function with whatever is in there.
 To change it in the future, click the Edit button, then click Rotate, and put in a new email address.
 
+### 13 · (optional) Password protect "add" a construct
+
+1. Go to ([dash.cloudflare.com](https://dash.cloudflare.com)) Cloudflare dashboard, click **Compute**, then **Workers & Pages**
+2. Click the Pages you created in Step 8.
+3. Click **Settings**, scroll down to **Variables and secrets** then click **Add**.
+4. Change Type to Secret, make the variable name AUTH then add in any password you want.
+
+Now on your website, when you click "add" under contructs, you can put in your saved password. Like FORWARDED_EMAILS this is unable to be read by anyone, not even you, as you will need to click Rotate to reset the password.
+
 ---
 
 ## Project layout

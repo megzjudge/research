@@ -168,7 +168,7 @@ your-repo/                          # ← syncs to GitHub
 
 ### Block 1:
 ```
-sql-- papers: one row per unique paper (de-duped on link)
+-- papers: one row per unique paper (de-duped on link)
 CREATE TABLE IF NOT EXISTS papers (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   title           TEXT NOT NULL,
@@ -177,7 +177,8 @@ CREATE TABLE IF NOT EXISTS papers (
   link            TEXT NOT NULL UNIQUE, -- de-dup key: same paper across alerts stored once
   venue           TEXT,
   first_seen      TEXT DEFAULT (datetime('now')),
-  alert_subject   TEXT
+  alert_subject   TEXT,
+  status          TEXT NOT NULL DEFAULT 'inbox'  -- inbox | starred | trash
 );
 ```
 
@@ -204,6 +205,11 @@ sqlCREATE INDEX IF NOT EXISTS idx_papers_seen ON papers(first_seen DESC);
 
 ### Block 5:
 ```
+CREATE INDEX IF NOT EXISTS idx_papers_status ON papers(status);
+```
+
+### Block 6:
+```
 sql-- Full-text search over title + authors + snippet
 CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
   title, authors, snippet,
@@ -211,7 +217,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
 );
 ```
 
-### Block 6:
+### Block 7:
 ```
 sqlCREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
   INSERT INTO papers_fts(rowid, title, authors, snippet)
@@ -219,7 +225,7 @@ sqlCREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
 END;
 ```
 
-### Block 7:
+### Block 8:
 ```
 sqlCREATE TRIGGER IF NOT EXISTS papers_ad AFTER DELETE ON papers BEGIN
   INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
@@ -227,7 +233,7 @@ sqlCREATE TRIGGER IF NOT EXISTS papers_ad AFTER DELETE ON papers BEGIN
 END;
 ```
 
-### Block 8:
+### Block 9:
 ```
 sqlCREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
   INSERT INTO papers_fts(papers_fts, rowid, title, authors, snippet)
@@ -237,7 +243,7 @@ sqlCREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
 END;
 ```
 
-### Block 9:
+### Block 10:
 ```
 sql-- ── Section curation (display state for the grid) ──────────────────
 CREATE TABLE IF NOT EXISTS sections (
@@ -250,7 +256,7 @@ CREATE TABLE IF NOT EXISTS sections (
 );
 ```
 
-### Block 10
+### Block 11:
 
 Add in your own scholar alerts here.
 You can change it to 1, 2, 3, 4, 5 or whatever you like as well from 10, 20, 30, etc.
@@ -285,7 +291,7 @@ This should print out Title, Authors, Link, Alert Subject.
 
 ### (Optional) Block 11:
 
-Sometimes two Scholar alerts belong in the same bucket (e.g. "Dark Triad"
+Sometimes two Scholar alerts can be folded into the same row (e.g. "Dark Triad"
 and "Dark Tetrad", or "Big 5" and "Big Five").
 
 Most of this happens in the **Step 10 · Edit Email Worker** code right at the top of the file:

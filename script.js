@@ -45,13 +45,13 @@ function slug(s){ return "sec-" + (s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-
 const ACRONYMS = new Set(["adhd","mbti","hexaco","ocd","ptsd","iq","eq","big5","asd","bpd"]);
 
 // Prettify a tag for DISPLAY ONLY (the stored tag is never changed).
-// Boolean operators (AND/OR/NOT) render small + grey; the surrounding
-// terms are acronym-uppercased or title-cased. Returns safe HTML:
-// terms are escaped here, operators are known-safe literals.
-// Plain tags with no operator pass through with light title-casing.
+// - Boolean operators (AND/OR/NOT) render small + grey.
+// - In a slash label ("Dark Triad / Tetrad / Machiavellianism") the first
+//   term shows full-size; the alternates after each "/" render small + grey.
+// - Acronyms are uppercased, other words title-cased.
+// Returns safe HTML: terms are escaped here, separators are safe literals.
 function prettyLabel(raw) {
   const s = (raw || "").trim();
-  const hasOp = /\b(AND|OR|NOT)\b/i.test(s);
 
   const term = (word) =>
     word.replace(/["""']/g, "").split(/\s+/).filter(Boolean).map((w) => {
@@ -60,6 +60,17 @@ function prettyLabel(raw) {
       return esc(w.charAt(0).toUpperCase() + w.slice(1));
     }).join(" ");
 
+  // Slash label: primary term + subdued alternates.
+  if (s.includes("/")) {
+    const parts = s.split("/").map((p) => p.trim()).filter(Boolean);
+    const head = term(parts[0]);
+    const rest = parts.slice(1)
+      .map((p) => `<small class="op">/ ${term(p)}</small>`)
+      .join(" ");
+    return rest ? `${head} ${rest}` : head;
+  }
+
+  const hasOp = /\b(AND|OR|NOT)\b/i.test(s);
   if (!hasOp) return term(s);
 
   // Split on operators, keeping them, then style operators vs terms.

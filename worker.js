@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v9 — Myers Briggs variant matching (2026-06-12)";
+const VERSION = "worker v10 — gate matches envelope + From header + bounce domain (2026-06-13)";
 
 const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
@@ -43,6 +43,14 @@ function canonical(term) {
   return TERM_ALIASES[term.toLowerCase().trim()] || term;
 }
 
+// Extract the bare email from a From header like
+//   Google Scholar Alerts <scholaralerts-noreply@google.com>
+// falling back to the whole trimmed string if there are no angle brackets.
+function parseAddress(headerValue) {
+  const m = headerValue.match(/<([^>]+)>/);
+  return (m ? m[1] : headerValue).trim();
+}
+
 export default {
   // Lets you check what's deployed by visiting the worker's URL in a browser.
   async fetch() {
@@ -53,22 +61,31 @@ export default {
 
   async email(message, env, ctx) {
     // ── sender gate ────────────────────────────────────────────────
-    const from = (message.from || "").toLowerCase();
+    // message.from is the SMTP envelope sender, which for Google mail is
+    // often a per-message bounce address (…@*.bounces.google.com), NOT the
+    // visible "From:" header. So we check BOTH, and accept Scholar's bounce
+    // domain, otherwise genuine alerts get rejected.
+    const envelopeFrom = (message.from || "").toLowerCase();
+    const headerFrom = parseAddress(message.headers.get("from") || "").toLowerCase();
 
     const allowed = (env.FORWARDED_EMAILS || "")
       .split(",")
       .map((s) => s.trim().toLowerCase())
       .filter(Boolean);
 
-    const isScholar = from === "scholaralerts-noreply@google.com";
-    const isForwarder = allowed.includes(from);
+    const SCHOLAR = "scholaralerts-noreply@google.com";
+    const isScholar =
+      envelopeFrom === SCHOLAR ||
+      headerFrom === SCHOLAR ||
+      envelopeFrom.endsWith(".bounces.google.com"); // Scholar's envelope bounce sender
+    const isForwarder = allowed.includes(envelopeFrom) || allowed.includes(headerFrom);
 
     console.log(
-      `gate check → from="${from}" | secretSet=${env.FORWARDED_EMAILS !== undefined} | allowed=[${allowed.join(" | ")}]`
+      `gate check → envelope="${envelopeFrom}" header="${headerFrom}" | secretSet=${env.FORWARDED_EMAILS !== undefined} | allowed=[${allowed.join(" | ")}]`
     );
 
     if (!isScholar && !isForwarder) {
-      console.log(`Rejected mail from ${from}`);
+      console.log(`Rejected mail (envelope="${envelopeFrom}" header="${headerFrom}")`);
       message.setReject("Sender not allowed");
       return;
     }

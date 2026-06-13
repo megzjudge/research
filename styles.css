@@ -142,3 +142,8 @@ footer a:hover { text-decoration: underline; }
   border-radius: 3px; transition: color .12s; }
 .cardacts button:hover { color: var(--accent); }
 .sechead .star { color: var(--accent); }
+
+/* ── paged carousel grid: always PAGE-across on one row, no wrapping ── */
+/* (search/trash use the flexible .grid above; only the carousel is fixed) */
+.carousel .grid-page { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 860px) { .carousel .grid-page { grid-template-columns: repeat(2, 1fr); } }

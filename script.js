@@ -8,6 +8,7 @@ const elNew = document.getElementById("newtag");
 const elAdd = document.getElementById("addbtn");
 
 const pageOf = new Map();            // tag -> current carousel page
+let view = "sections";               // sections | search | trash
 
 function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function slug(s){ return "sec-" + (s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
@@ -20,32 +21,68 @@ function ago(iso){
   return Math.floor(days/365)+"y ago";
 }
 
-/* ── default view: sections of cards, 3 at a time with arrows ── */
+/* ── default view: starred row + sections of cards ── */
 async function loadSections() {
+  view = "sections";
   elStatus.textContent = "loading…";
   try {
     const r = await fetch(`/api/sections?per=${FETCH}`);
-    const { sections = [] } = await r.json();
-    renderRail(sections);
-    renderSections(sections);
-    elStatus.textContent = sections.length ? "" : "No constructs yet — add one on the left.";
+    const { starred = [], sections = [], trash_count = 0 } = await r.json();
+    renderRail(sections, starred.length, trash_count);
+    renderAll(starred, sections);
+    elStatus.textContent = (sections.length || starred.length) ? "" : "No constructs yet — add one on the left.";
   } catch (e) {
     elStatus.textContent = "Couldn't reach the database.";
   }
 }
 
-function renderRail(sections) {
+function renderRail(sections, starredCount, trashCount) {
   elRail.innerHTML = "";
+  if (starredCount) {
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="#sec-starred"><span>★ starred</span><span class="c">${starredCount}</span></a>`;
+    elRail.appendChild(li);
+  }
   for (const s of sections) {
     if (s.hidden) continue;
     const li = document.createElement("li");
     li.innerHTML = `<a href="#${slug(s.tag)}"><span>${esc(s.label)}</span><span class="c">${s.count}</span></a>`;
     elRail.appendChild(li);
   }
+  if (trashCount) {
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="#" data-trash><span>trash</span><span class="c">${trashCount}</span></a>`;
+    elRail.appendChild(li);
+  }
 }
 
-function renderSections(sections) {
+elRail.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-trash]");
+  if (t) { e.preventDefault(); runTrash(); }
+});
+
+function renderAll(starred, sections) {
   elSections.innerHTML = "";
+
+  // Starred row first — papers kept out of their home sections, chips show where they came from.
+  if (starred.length) {
+    const sec = document.createElement("section");
+    sec.className = "section starred-sec";
+    sec.id = "sec-starred";
+    sec.innerHTML = `
+      <div class="sechead">
+        <h2><span class="star">★</span> Starred</h2>
+        <span class="count">${starred.length}</span>
+      </div>
+      <div class="carousel">
+        <button class="navbtn prev" aria-label="previous papers">&#10094;</button>
+        <div class="grid grid-page"></div>
+        <button class="navbtn next" aria-label="more papers">&#10095;</button>
+      </div>`;
+    elSections.appendChild(sec);
+    initCarousel(sec, { tag: "__starred", papers: starred });
+  }
+
   for (const s of sections) {
     if (s.hidden) continue;
     const sec = document.createElement("section");
@@ -75,6 +112,7 @@ function renderSections(sections) {
     if (s.count > 0) initCarousel(sec, s);
   }
   wireSectionActions();
+  elSections.querySelectorAll(".section").forEach(el => railObserver.observe(el));
 }
 
 /* ── carousel: page through a section's papers, PAGE at a time ── */
@@ -85,7 +123,6 @@ function initCarousel(sec, s) {
   const next = sec.querySelector(".navbtn.next");
   const maxPage = Math.max(0, Math.ceil(papers.length / PAGE) - 1);
 
-  // Nothing to page through? Hide the arrows, show the cards.
   if (papers.length <= PAGE) {
     prev.style.display = "none";
     next.style.display = "none";
@@ -104,6 +141,7 @@ function initCarousel(sec, s) {
   show(pageOf.get(s.tag) || 0);
 }
 
+/* ── cards ── */
 function cardHtml(p) {
   const tags = (p.tags && p.tags.length)
     ? `<span class="cardtags">${p.tags.map(t => `<button class="tagchip" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</span>`
@@ -112,9 +150,47 @@ function cardHtml(p) {
     <a class="ttl" href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.title)}</a>
     ${p.authors ? `<p class="auth">${esc(p.authors)}</p>` : ""}
     ${p.snippet ? `<p class="snip">${esc(p.snippet)}</p>` : ""}
-    <span class="when">${ago(p.first_seen)}</span>
+    <span class="cardfoot">
+      <span class="when">${ago(p.first_seen)}</span>
+      ${cardActs(p)}
+    </span>
     ${tags}
   </article>`;
+}
+
+// Triage controls: depend on where the paper currently lives.
+function cardActs(p) {
+  if (!p.id) return "";
+  const b = (status, glyph, label) =>
+    `<button data-pstatus="${status}" data-id="${p.id}" title="${label}" aria-label="${label}">${glyph}</button>`;
+  if (p.status === "starred") return `<span class="cardacts">${b("inbox","★","unstar")}${b("trash","✕","trash")}</span>`;
+  if (p.status === "trash")   return `<span class="cardacts">${b("inbox","↩","restore")}${b("starred","☆","star")}</span>`;
+  return `<span class="cardacts">${b("starred","☆","star")}${b("trash","✕","trash")}</span>`;
+}
+
+/* ── one delegated listener: tag chips + triage buttons ── */
+elSections.addEventListener("click", async (e) => {
+  const chip = e.target.closest(".tagchip");
+  if (chip) { elQ.value = ""; runSearch("", chip.getAttribute("data-tag")); return; }
+
+  const act = e.target.closest("[data-pstatus]");
+  if (!act) return;
+  act.disabled = true;
+  try {
+    await fetch("/api/papers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: +act.getAttribute("data-id"), status: act.getAttribute("data-pstatus") }),
+    });
+  } catch (err) { /* refresh shows the truth either way */ }
+  refresh();
+});
+
+function refresh() {
+  const q = elQ.value.trim();
+  if (view === "trash") runTrash();
+  else if (q) runSearch(q);
+  else loadSections();
 }
 
 function wireSectionActions() {
@@ -134,7 +210,7 @@ function wireSectionActions() {
   });
 }
 
-/* ── search mode: flat grid across everything ── */
+/* ── search mode: flat grid across everything (all statuses) ── */
 let debounce;
 elQ.addEventListener("input", () => {
   clearTimeout(debounce);
@@ -144,15 +220,8 @@ elQ.addEventListener("input", () => {
   }, 220);
 });
 
-// Clicking a section chip on a search-result card filters to that section.
-elSections.addEventListener("click", (e) => {
-  const chip = e.target.closest(".tagchip");
-  if (!chip) return;
-  elQ.value = "";
-  runSearch("", chip.getAttribute("data-tag"));
-});
-
 async function runSearch(q, tag) {
+  view = "search";
   elStatus.textContent = "searching…";
   const params = new URLSearchParams({ limit: 100 });
   if (q) params.set("q", q);
@@ -169,6 +238,25 @@ async function runSearch(q, tag) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (e) {
     elStatus.textContent = "Search failed.";
+  }
+}
+
+/* ── trash view: searchable archive of abandoned papers ── */
+async function runTrash() {
+  view = "trash";
+  elStatus.textContent = "loading trash…";
+  try {
+    const r = await fetch("/api/papers?status=trash&limit=200");
+    const { papers = [] } = await r.json();
+    elSections.innerHTML = `
+      <section class="section">
+        <div class="sechead"><h2>Trash</h2><span class="count">${papers.length}</span></div>
+        <div class="grid">${papers.map(cardHtml).join("")}</div>
+      </section>`;
+    elStatus.textContent = papers.length ? "" : "Trash is empty.";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) {
+    elStatus.textContent = "Couldn't load trash.";
   }
 }
 
@@ -194,8 +282,5 @@ const railObserver = new IntersectionObserver((entries) => {
     }
   }
 }, { rootMargin: "-10% 0px -80% 0px" });
-
-const _origRender = renderSections;
-renderSections = function(s){ _origRender(s); elSections.querySelectorAll(".section").forEach(el => railObserver.observe(el)); };
 
 loadSections();

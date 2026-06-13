@@ -11,6 +11,32 @@ const elAdd = document.getElementById("addbtn");
 
 const pageOf = new Map();            // tag -> current carousel page
 let view = "sections";               // sections | search | trash
+let authPw = null;                   // cached password for this session (not stored)
+
+// All writes go through here: prompts for the password once, caches it for
+// the session, sends it in the body, and re-prompts if the server rejects it
+// (401). The password is verified server-side against the AUTH secret, so it
+// never lives in this file — this just collects and forwards it.
+async function postWrite(url, payload) {
+  if (authPw === null) {
+    authPw = window.prompt("Password:") || "";
+  }
+  let r = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...payload, auth: authPw }),
+  });
+  if (r.status === 401) {
+    authPw = window.prompt("Wrong password — try again:") || "";
+    r = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...payload, auth: authPw }),
+    });
+    if (r.status === 401) { authPw = null; alert("Password incorrect."); }
+  }
+  return r;
+}
 
 function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function slug(s){ return "sec-" + (s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
@@ -225,10 +251,9 @@ elSections.addEventListener("click", async (e) => {
   if (!act) return;
   act.disabled = true;
   try {
-    await fetch("/api/papers", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id: +act.getAttribute("data-id"), status: act.getAttribute("data-pstatus") }),
+    await postWrite("/api/papers", {
+      id: +act.getAttribute("data-id"),
+      status: act.getAttribute("data-pstatus"),
     });
   } catch (err) { /* refresh shows the truth either way */ }
   refresh();
@@ -249,7 +274,7 @@ function wireSectionActions() {
       const payload = { tag };
       if (act === "pin")  { payload.pinned = +btn.getAttribute("data-val"); }
       if (act === "hide") { payload.hidden = 1; }
-      await fetch("/api/sections", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(payload) });
+      await postWrite("/api/sections", payload);
       loadSections();
     };
   });
@@ -312,7 +337,8 @@ async function runTrash() {
 async function addConstruct() {
   const tag = elNew.value.trim();
   if (!tag) return;
-  await fetch("/api/sections", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ tag, pinned:0, hidden:0 }) });
+  const r = await postWrite("/api/sections", { tag, pinned:0, hidden:0 });
+  if (!r.ok) return;                 // leave the typed tag in place if rejected
   elNew.value = "";
   await loadSections();
   location.hash = "#" + slug(tag);

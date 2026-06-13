@@ -253,18 +253,36 @@ function cardHtml(p) {
   </article>`;
 }
 
-// Triage controls: depend on where the paper currently lives.
+// Triage + link controls. Order, left to right: 🔗 edit-url, ✕/trash, ★/star.
 function cardActs(p) {
   if (!p.id) return "";
   const b = (status, glyph, label) =>
     `<button data-pstatus="${status}" data-id="${p.id}" title="${label}" aria-label="${label}">${glyph}</button>`;
-  if (p.status === "starred") return `<span class="cardacts">${b("inbox","★","unstar")}${b("trash","✕","trash")}</span>`;
-  if (p.status === "trash")   return `<span class="cardacts">${b("inbox","↩","restore")}${b("starred","☆","star")}</span>`;
-  return `<span class="cardacts">${b("starred","☆","star")}${b("trash","✕","trash")}</span>`;
+  const linkBtn = `<button class="urlbtn" data-editurl="${p.id}" data-link="${esc(p.link)}" title="replace link" aria-label="replace link">🔗</button>`;
+  let triage;
+  if (p.status === "starred")      triage = b("trash","✕","trash") + b("inbox","★","unstar");
+  else if (p.status === "trash")   triage = b("inbox","↩","restore") + b("starred","☆","star");
+  else                             triage = b("trash","✕","trash") + b("starred","☆","star");
+  return `<span class="cardacts">${linkBtn}${triage}</span>`;
 }
 
 /* ── one delegated listener: tag chips + "+" menu + triage buttons ── */
 elSections.addEventListener("click", async (e) => {
+  // Edit-URL button: prompt with the current link prefilled, then save.
+  const urlBtn = e.target.closest("[data-editurl]");
+  if (urlBtn) {
+    const cur = urlBtn.getAttribute("data-link") || "";
+    const next = window.prompt("Replace link with:", cur);
+    if (next === null) return;                 // cancelled
+    const link = next.trim();
+    if (!link || link === cur) return;         // unchanged
+    const r = await postWrite("/api/papers", { action: "link", id: +urlBtn.getAttribute("data-editurl"), link });
+    if (r && r.status === 409) { alert("Another paper already has that link."); return; }
+    if (r && !r.ok) { alert("Couldn't update the link."); return; }
+    refresh();
+    return;
+  }
+
   // "+" chip: toggle this card's dropdown (and close any others).
   const plus = e.target.closest("[data-addtag]");
   if (plus) {

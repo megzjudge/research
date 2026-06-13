@@ -1,6 +1,9 @@
 /**
- * GET  /api/sections           -> ordered sections, each with its papers
- *   ?per=6   max papers shown per section (default 6, the rest via /api/papers?tag=)
+ * GET  /api/sections           -> starred papers + ordered sections with papers
+ *   ?per=24  max papers per section (default 6, cap 24)
+ *   Sections and their counts include ONLY status='inbox' papers;
+ *   starred papers come back separately (with their tags, for chips),
+ *   and a trash_count is included for the rail.
  *
  * POST /api/sections           -> create or update curation for one tag
  *   body: { tag, label?, pinned?, hidden?, sort_order? }
@@ -13,9 +16,14 @@ export async function onRequestGet({ request, env }) {
   const per = Math.min(parseInt(url.searchParams.get("per") || "6", 10), 24);
 
   try {
-    // All tags that actually have papers, with counts.
+    // Tags that have VISIBLE (inbox) papers, with counts.
     const tagRows = (await env.research
-      .prepare(`SELECT tag, COUNT(*) AS count FROM tags GROUP BY tag`)
+      .prepare(
+        `SELECT t.tag, COUNT(*) AS count
+         FROM tags t JOIN papers p ON p.id = t.paper_id
+         WHERE p.status = 'inbox'
+         GROUP BY t.tag`
+      )
       .all()).results || [];
 
     // Curation rows.
@@ -25,7 +33,7 @@ export async function onRequestGet({ request, env }) {
 
     const cur = new Map(curRows.map((r) => [r.tag, r]));
 
-    // Union of tags-with-papers and pre-created (curated) tags.
+    // Union of tags-with-visible-papers and pre-created (curated) tags.
     const allTags = new Set([...tagRows.map((r) => r.tag), ...curRows.map((r) => r.tag)]);
     const countOf = new Map(tagRows.map((r) => [r.tag, r.count]));
 
@@ -49,14 +57,15 @@ export async function onRequestGet({ request, env }) {
       a.tag.localeCompare(b.tag)
     );
 
-    // Attach the most recent `per` papers to each visible section.
+    // Attach the most recent `per` inbox papers to each visible section.
     for (const s of sections) {
       if (s.hidden || s.count === 0) { s.papers = []; continue; }
       const { results } = await env.research
         .prepare(
-          `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen
+          `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status
            FROM papers p
-           WHERE p.id IN (SELECT paper_id FROM tags WHERE tag = ?)
+           WHERE p.status = 'inbox'
+             AND p.id IN (SELECT paper_id FROM tags WHERE tag = ?)
            ORDER BY p.first_seen DESC
            LIMIT ?`
         )
@@ -65,7 +74,25 @@ export async function onRequestGet({ request, env }) {
       s.papers = results || [];
     }
 
-    return json({ sections });
+    // Starred papers (their own row on the site), tags included for chips.
+    const starredRows = (await env.research
+      .prepare(
+        `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
+                (SELECT group_concat(tag, '|') FROM tags WHERE paper_id = p.id) AS tags
+         FROM papers p
+         WHERE p.status = 'starred'
+         ORDER BY p.first_seen DESC
+         LIMIT 100`
+      )
+      .all()).results || [];
+    const starred = starredRows.map((r) => ({ ...r, tags: r.tags ? r.tags.split("|") : [] }));
+
+    // Trash count for the rail link.
+    const trashRow = await env.research
+      .prepare(`SELECT COUNT(*) AS n FROM papers WHERE status = 'trash'`)
+      .first();
+
+    return json({ starred, sections, trash_count: trashRow ? trashRow.n : 0 });
   } catch (err) {
     return json({ error: String(err) }, 500);
   }

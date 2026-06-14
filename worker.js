@@ -22,13 +22,14 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v17 — canonical flipped to Dark Triad (2026-06-13)";
+const VERSION = "worker v18 — Indian Psychology umbrella section (2026-06-13)";
 
 const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
   "Big Five", "Big 5", "MBTI", "Myers-Briggs", "Myers Briggs",
   "HEXACO", "Sociosexuality",
   "Bisexual women", "Bisexuality", "Bisexual",
+  "Triguna", "Pancha Kosha", "Guna", "Vedic", "Sattva", "Atman",
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -41,6 +42,15 @@ const TERM_ALIASES = {
   "machiavellianism": "Dark Triad", // merge: Mach is a Dark Triad component
   "bisexual": "Bisexuality",     // merge: bisexual / bisexual women → Bisexuality
   "bisexual women": "Bisexuality",
+  // ── Indian Psychology umbrella: several alerts, one section ──
+  "triguna": "Indian Psychology",
+  "pancha": "Indian Psychology",        // "Pancha" AND "Kosha" → first word is Pancha
+  "pancha kosha": "Indian Psychology",
+  "guna": "Indian Psychology",
+  "vedic": "Indian Psychology",
+  "sattva": "Indian Psychology",
+  "atman": "Indian Psychology",
+  "indian": "Indian Psychology",        // "Indian" AND "psychology" AND "personality"
 };
 
 function canonical(term) {

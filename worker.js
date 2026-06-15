@@ -25,7 +25,7 @@
 const VERSION = "worker v18 — Indian Psychology umbrella section (2026-06-13)";
 
 const KNOWN_TERMS = [
-  "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
+  "Dark Tetrad", "Dark Triad", "Machiavellianism",
   "Big Five", "Big 5", "MBTI", "Myers-Briggs", "Myers Briggs",
   "HEXACO", "Sociosexuality",
   "Bisexual women", "Bisexuality", "Bisexual",
@@ -34,6 +34,13 @@ const KNOWN_TERMS = [
   "Rupert Sheldrake", "Emil Kirkegaard",
   "Intelligent Quotient", "IQ",
   "adhd AND nicotine", "ADHD and Nicotine",
+  "industriousness AND orderliness",
+  "intellect AND aesthetics",
+  "intellect AND openness",
+  "withdrawal AND volatility",
+  "disagreeableness AND agreeableness",
+  "enthusiasm AND assertiveness",
+  "compassion AND politeness",
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -63,6 +70,13 @@ const TERM_ALIASES = {
   "emil kirkegaard": "Followed Authors",
   "adhd and nicotine": "ADHD and Nicotine",
   "iq": "Intelligent Quotient",
+  "industriousness and orderliness": "Big Ten",
+  "intellect and aesthetics": "Big Ten",
+  "intellect and openness": "Big Ten",
+  "withdrawal and volatility": "Big Ten",
+  "disagreeableness and agreeableness": "Big Ten",
+  "enthusiasm and assertiveness": "Big Ten",
+  "compassion and politeness": "Big Ten",
 };
 
 function canonical(term) {

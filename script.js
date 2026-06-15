@@ -63,7 +63,6 @@ const TERM_ALIASES = {
   "emil kirkegaard": "Followed Authors",
   "adhd and nicotine": "ADHD and Nicotine",
   "iq": "Intelligent Quotient",
-  "industriousness": "Big Ten",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",

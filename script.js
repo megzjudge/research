@@ -39,6 +39,8 @@ const TERM_ALIASES = {
   "philosophy of religion":  "Experimental Philosophy",
   "rupert sheldrake":        "Followed Authors",
   "emil kirkegaard":         "Followed Authors",
+  "adhd and nicotine":       "ADHD and Nicotine",
+  "iq":                      "Intelligent Quotient",
 };
 
 function canonical(tag) {

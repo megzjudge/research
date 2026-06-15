@@ -3,21 +3,48 @@ const FETCH = 24;                    // papers loaded per section (API cap)
 // (.carousel .grid-page), so cards never wrap to a second row.
 const pageSize = () => (window.matchMedia("(max-width: 860px)").matches ? 2 : 3);
 const elSections = document.getElementById("sections");
-const elRail = document.getElementById("railnav");
-const elStatus = document.getElementById("status");
-const elQ = document.getElementById("q");
-const elNew = document.getElementById("newtag");
-const elAdd = document.getElementById("addbtn");
+const elRail     = document.getElementById("railnav");
+const elStatus   = document.getElementById("status");
+const elQ        = document.getElementById("q");
+const elNew      = document.getElementById("newtag");
+const elAdd      = document.getElementById("addbtn");
 
 const pageOf = new Map();            // tag -> current carousel page
-let view = "sections";               // sections | search | trash
-let authPw = null;                   // cached password for this session (not stored)
-let allTags = [];                    // every section tag, for the per-card "+" dropdown
+let view   = "sections";            // sections | search | trash
+let authPw = null;                  // cached password for this session
+let allTags = [];                   // every section tag, for the per-card "+" dropdown
 
-// All writes go through here: prompts for the password once, caches it for
-// the session, sends it in the body, and re-prompts if the server rejects it
-// (401). The password is verified server-side against the AUTH secret, so it
-// never lives in this file — this just collects and forwards it.
+// ── alias map (keep in sync with sections.js / worker.js) ────────────────
+const TERM_ALIASES = {
+  "big 5":                   "Big Five",
+  "big five":                "Big Five",
+  "myers-briggs":            "MBTI",
+  "myers briggs":            "MBTI",
+  "dark tetrad":             "Dark Triad",
+  "machiavellianism":        "Dark Triad",
+  "bisexual":                "Bisexuality",
+  "bisexual women":          "Bisexuality",
+  "triguna":                 "Indian Psychology",
+  "pancha":                  "Indian Psychology",
+  "pancha kosha":            "Indian Psychology",
+  "guna":                    "Indian Psychology",
+  "vedic":                   "Indian Psychology",
+  "sattva":                  "Indian Psychology",
+  "atman":                   "Indian Psychology",
+  "indian":                  "Indian Psychology",
+  "experimental philosophy": "Experimental Philosophy",
+  "philosophy of mind":      "Experimental Philosophy",
+  "metaphysics":             "Experimental Philosophy",
+  "epistemology":            "Experimental Philosophy",
+  "philosophy of religion":  "Experimental Philosophy",
+  "rupert sheldrake":        "Followed Authors",
+  "emil kirkegaard":         "Followed Authors",
+};
+
+function canonical(tag) {
+  return TERM_ALIASES[(tag || "").toLowerCase().trim()] || tag;
+}
+
 async function postWrite(url, payload) {
   if (authPw === null) {
     authPw = window.prompt("Password:") || "";
@@ -46,11 +73,6 @@ function slug(s){ return "sec-" + (s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-
 const ACRONYMS = new Set(["adhd","mbti","hexaco","ocd","ptsd","iq","eq","big5","asd","bpd"]);
 
 // Prettify a tag for DISPLAY ONLY (the stored tag is never changed).
-// - Boolean operators (AND/OR/NOT) render small + grey.
-// - In a slash label ("Dark Triad / Tetrad / Machiavellianism") the first
-//   term shows full-size; the alternates after each "/" render small + grey.
-// - Acronyms are uppercased, other words title-cased.
-// Returns safe HTML: terms are escaped here, separators are safe literals.
 function prettyLabel(raw) {
   const s = (raw || "").trim();
 
@@ -61,7 +83,6 @@ function prettyLabel(raw) {
       return esc(w.charAt(0).toUpperCase() + w.slice(1));
     }).join(" ");
 
-  // Slash label: primary term + subdued alternates.
   if (s.includes("/")) {
     const parts = s.split("/").map((p) => p.trim()).filter(Boolean);
     const head = term(parts[0]);
@@ -74,7 +95,6 @@ function prettyLabel(raw) {
   const hasOp = /\b(AND|OR|NOT)\b/i.test(s);
   if (!hasOp) return term(s);
 
-  // Split on operators, keeping them, then style operators vs terms.
   return s
     .split(/\b(AND|OR|NOT)\b/i)
     .map((part) => {
@@ -87,6 +107,7 @@ function prettyLabel(raw) {
     .filter(Boolean)
     .join(" ");
 }
+
 function ago(iso){
   if(!iso) return "";
   const d = new Date(iso.replace(" ","T")+"Z"); const days = Math.floor((Date.now()-d)/864e5);
@@ -140,7 +161,6 @@ elRail.addEventListener("click", (e) => {
 function renderAll(starred, sections) {
   elSections.innerHTML = "";
 
-  // Starred row first — papers kept out of their home sections, chips show where they came from.
   if (starred.length) {
     const sec = document.createElement("section");
     sec.className = "section starred-sec";
@@ -191,7 +211,7 @@ function renderAll(starred, sections) {
   elSections.querySelectorAll(".section").forEach(el => railObserver.observe(el));
 }
 
-/* ── carousel: page through a section's papers, pageSize() at a time ── */
+/* ── carousel ── */
 function initCarousel(sec, s) {
   const papers = s.papers || [];
   const grid = sec.querySelector(".grid-page");
@@ -214,12 +234,9 @@ function initCarousel(sec, s) {
   next.onclick = () => show((pageOf.get(s.tag) || 0) + 1);
   show(pageOf.get(s.tag) || 0);
 
-  // Re-render this carousel when the desktop/mobile breakpoint flips,
-  // so the page size (3 vs 2) and arrow visibility stay correct.
   sec._reshow = () => show(pageOf.get(s.tag) || 0);
 }
 
-// Debounced: re-page every carousel on viewport width changes.
 let _rz;
 window.addEventListener("resize", () => {
   clearTimeout(_rz);
@@ -230,14 +247,23 @@ window.addEventListener("resize", () => {
 
 /* ── cards ── */
 function cardHtml(p) {
-  const chips = (p.tags || []).map(t => `<button class="tagchip" data-tag="${esc(t)}">${esc(t)}</button>`).join("");
-  // "+" chip: only when we know the paper id and there are tags it doesn't yet have.
-  const has = new Set(p.tags || []);
+  // FIX: fold each raw tag to its canonical, dedupe, then use prettyLabel for display.
+  // This fixes chips showing "adhd AND nicotine" instead of "ADHD and Nicotine",
+  // and collapses alias tags (e.g. "Epistemology") to their canonical chip.
+  const canonTags = [...new Set((p.tags || []).map(t => canonical(t)))];
+  const chips = canonTags.map(c =>
+    `<button class="tagchip" data-tag="${esc(c)}">${prettyLabel(c)}</button>`
+  ).join("");
+
+  // "+" chip: only when we know the paper id and there are canonical tags it doesn't yet have.
+  const has = new Set(canonTags);
   const addable = allTags.filter(t => !has.has(t));
   const plus = (p.id && addable.length)
     ? `<span class="addtag-wrap">
          <button class="tagchip tagadd" data-addtag="${p.id}" title="add to a section">+</button>
-         <span class="tagmenu" hidden>${addable.map(t => `<button class="tagmenu-item" data-id="${p.id}" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</span>
+         <span class="tagmenu" hidden>${addable.map(t =>
+           `<button class="tagmenu-item" data-id="${p.id}" data-tag="${esc(t)}">${esc(t)}</button>`
+         ).join("")}</span>
        </span>`
     : "";
   const tags = (chips || plus) ? `<span class="cardtags">${chips}${plus}</span>` : "";
@@ -253,29 +279,27 @@ function cardHtml(p) {
   </article>`;
 }
 
-// Triage + link controls. Order, left to right: 🔗 edit-url, ✕/trash, ★/star.
 function cardActs(p) {
   if (!p.id) return "";
   const b = (status, glyph, label) =>
     `<button data-pstatus="${status}" data-id="${p.id}" title="${label}" aria-label="${label}">${glyph}</button>`;
   const linkBtn = `<button class="urlbtn" data-editurl="${p.id}" data-link="${esc(p.link)}" title="replace link" aria-label="replace link">↗</button>`;
   let triage;
-  if (p.status === "starred")      triage = b("trash","✕","trash") + b("inbox","★","unstar");
-  else if (p.status === "trash")   triage = b("inbox","↩","restore") + b("starred","☆","star");
-  else                             triage = b("trash","✕","trash") + b("starred","☆","star");
+  if (p.status === "starred")    triage = b("trash","✕","trash") + b("inbox","★","unstar");
+  else if (p.status === "trash") triage = b("inbox","↩","restore") + b("starred","☆","star");
+  else                           triage = b("trash","✕","trash") + b("starred","☆","star");
   return `<span class="cardacts">${linkBtn}${triage}</span>`;
 }
 
 /* ── one delegated listener: tag chips + "+" menu + triage buttons ── */
 elSections.addEventListener("click", async (e) => {
-  // Edit-URL button: prompt with the current link prefilled, then save.
   const urlBtn = e.target.closest("[data-editurl]");
   if (urlBtn) {
-    const cur = urlBtn.getAttribute("data-link") || "";
+    const cur  = urlBtn.getAttribute("data-link") || "";
     const next = window.prompt("Replace link with:", cur);
-    if (next === null) return;                 // cancelled
+    if (next === null) return;
     const link = next.trim();
-    if (!link || link === cur) return;         // unchanged
+    if (!link || link === cur) return;
     const r = await postWrite("/api/papers", { action: "link", id: +urlBtn.getAttribute("data-editurl"), link });
     if (r && r.status === 409) { alert("Another paper already has that link."); return; }
     if (r && !r.ok) { alert("Couldn't update the link."); return; }
@@ -283,7 +307,6 @@ elSections.addEventListener("click", async (e) => {
     return;
   }
 
-  // "+" chip: toggle this card's dropdown (and close any others).
   const plus = e.target.closest("[data-addtag]");
   if (plus) {
     const menu = plus.parentElement.querySelector(".tagmenu");
@@ -293,7 +316,6 @@ elSections.addEventListener("click", async (e) => {
     return;
   }
 
-  // Picking a tag from the dropdown.
   const item = e.target.closest(".tagmenu-item");
   if (item) {
     const r = await postWrite("/api/papers", {
@@ -327,7 +349,6 @@ function closeAllTagMenus() {
   elSections.querySelectorAll(".tagmenu").forEach((m) => { m.hidden = true; });
 }
 
-// Click outside any menu closes them.
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".addtag-wrap")) closeAllTagMenus();
 });
@@ -356,7 +377,7 @@ function wireSectionActions() {
   });
 }
 
-/* ── search mode: flat grid across everything (all statuses) ── */
+/* ── search mode ── */
 let debounce;
 elQ.addEventListener("input", () => {
   clearTimeout(debounce);
@@ -370,7 +391,7 @@ async function runSearch(q, tag) {
   view = "search";
   elStatus.textContent = "searching…";
   const params = new URLSearchParams({ limit: 100 });
-  if (q) params.set("q", q);
+  if (q)   params.set("q",   q);
   if (tag) params.set("tag", tag);
   try {
     const r = await fetch("/api/papers?" + params);
@@ -387,7 +408,7 @@ async function runSearch(q, tag) {
   }
 }
 
-/* ── trash view: searchable archive of abandoned papers ── */
+/* ── trash view ── */
 async function runTrash() {
   view = "trash";
   elStatus.textContent = "loading trash…";
@@ -411,7 +432,7 @@ async function addConstruct() {
   const tag = elNew.value.trim();
   if (!tag) return;
   const r = await postWrite("/api/sections", { tag, pinned:0, hidden:0 });
-  if (!r.ok) return;                 // leave the typed tag in place if rejected
+  if (!r.ok) return;
   elNew.value = "";
   await loadSections();
   location.hash = "#" + slug(tag);

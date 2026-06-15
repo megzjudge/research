@@ -8,8 +8,8 @@
   --line-strong: #423e50;
   --accent:  #b69cf0;
   --accent-soft: #2a2440;
-  --serif: "Newsreader", Georgia, serif;
-  --mono:  "IBM Plex Mono", ui-monospace, monospace;
+  --serif: Georgia, "Times New Roman", Times, serif;
+  --mono:  ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }

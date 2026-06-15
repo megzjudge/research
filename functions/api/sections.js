@@ -1,22 +1,29 @@
 /**
  * GET  /api/sections           -> starred papers + ordered sections with papers
  *   ?per=24  max papers per section (default 6, cap 24)
- *   Sections and their counts include ONLY status='inbox' papers;
- *   starred papers come back separately (with their tags, for chips),
- *   and a trash_count is included for the rail.
  *
  * POST /api/sections           -> create or update curation for one tag
- *   body: { tag, label?, pinned?, hidden?, sort_order? }
  *
  * Binding required on the Pages project: D1 -> variable `research`
  */
+
+const UMBRELLA_TAGS = {
+  "Big Ten": ["Industriousness"],
+};
+
+function umbrellaMembers(canonical) {
+  return [canonical, ...(UMBRELLA_TAGS[canonical] || [])];
+}
+
+function isFoldedIntoUmbrella(tag) {
+  return Object.values(UMBRELLA_TAGS).some((members) => members.includes(tag));
+}
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const per = Math.min(parseInt(url.searchParams.get("per") || "6", 10), 24);
 
   try {
-    // Tags that have VISIBLE (inbox) papers, with counts.
     const tagRows = (await env.research
       .prepare(
         `SELECT t.tag, COUNT(*) AS count
@@ -26,16 +33,26 @@ export async function onRequestGet({ request, env }) {
       )
       .all()).results || [];
 
-    // Curation rows.
     const curRows = (await env.research
       .prepare(`SELECT tag, label, sort_order, pinned, hidden FROM sections`)
       .all()).results || [];
 
     const cur = new Map(curRows.map((r) => [r.tag, r]));
 
-    // Union of tags-with-visible-papers and pre-created (curated) tags.
-    const allTags = new Set([...tagRows.map((r) => r.tag), ...curRows.map((r) => r.tag)]);
+    const allTags = new Set([
+      ...tagRows.map((r) => r.tag),
+      ...curRows.map((r) => r.tag),
+    ]);
+    for (const t of [...allTags]) {
+      if (isFoldedIntoUmbrella(t)) allTags.delete(t);
+    }
+
     const countOf = new Map(tagRows.map((r) => [r.tag, r.count]));
+    for (const [canonical, members] of Object.entries(UMBRELLA_TAGS)) {
+      let total = countOf.get(canonical) || 0;
+      for (const m of members) total += countOf.get(m) || 0;
+      countOf.set(canonical, total);
+    }
 
     let sections = [...allTags].map((tag) => {
       const c = cur.get(tag) || {};
@@ -49,7 +66,6 @@ export async function onRequestGet({ request, env }) {
       };
     });
 
-    // Order: pinned first, then sort_order, then count desc, then name.
     sections.sort((a, b) =>
       (b.pinned - a.pinned) ||
       (a.sort_order - b.sort_order) ||
@@ -57,25 +73,25 @@ export async function onRequestGet({ request, env }) {
       a.tag.localeCompare(b.tag)
     );
 
-    // Attach the most recent `per` inbox papers to each visible section.
     for (const s of sections) {
       if (s.hidden || s.count === 0) { s.papers = []; continue; }
+      const members = umbrellaMembers(s.tag);
+      const placeholders = members.map(() => "?").join(", ");
       const { results } = await env.research
         .prepare(
           `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
                   (SELECT group_concat(tag, '|') FROM tags WHERE paper_id = p.id) AS tags
            FROM papers p
            WHERE p.status = 'inbox'
-             AND p.id IN (SELECT paper_id FROM tags WHERE tag = ?)
+             AND p.id IN (SELECT paper_id FROM tags WHERE tag IN (${placeholders}))
            ORDER BY p.first_seen DESC
            LIMIT ?`
         )
-        .bind(s.tag, per)
+        .bind(...members, per)
         .all();
       s.papers = (results || []).map((r) => ({ ...r, tags: r.tags ? r.tags.split("|") : [] }));
     }
 
-    // Starred papers (their own row on the site), tags included for chips.
     const starredRows = (await env.research
       .prepare(
         `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
@@ -88,7 +104,6 @@ export async function onRequestGet({ request, env }) {
       .all()).results || [];
     const starred = starredRows.map((r) => ({ ...r, tags: r.tags ? r.tags.split("|") : [] }));
 
-    // Trash count for the rail link.
     const trashRow = await env.research
       .prepare(`SELECT COUNT(*) AS n FROM papers WHERE status = 'trash'`)
       .first();
@@ -103,10 +118,6 @@ export async function onRequestPost({ request, env }) {
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
 
-  // Write guard: requires the AUTH secret. The password is sent in the
-  // request body and checked here server-side, so it never appears in the
-  // downloadable frontend JS and can't be bypassed by calling the API
-  // directly. Set AUTH as a secret on the Pages project.
   if (!env.AUTH || body.auth !== env.AUTH) {
     return json({ error: "unauthorized" }, 401);
   }

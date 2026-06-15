@@ -161,6 +161,19 @@ footer a:hover { text-decoration: underline; }
   background: transparent; border: none; cursor: pointer; padding: 2px 5px;
   border-radius: 3px; transition: color .12s; }
 .cardacts button:hover { color: var(--accent); }
+.cardacts .scihubbtn {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--faint);
+  text-decoration: none;
+  padding: 2px 5px;
+  border-radius: 3px;
+  transition: color .12s;
+}
+.cardacts .scihubbtn:hover { color: var(--accent); }
 .sechead .star { color: var(--accent); }
 
 .carousel .grid-page { grid-template-columns: repeat(3, 1fr); }

@@ -1,4 +1,5 @@
 const FETCH = 24;
+const SCIHUB_MIRROR = "https://sci-hub.red/";
 const pageSize = () => (window.matchMedia("(max-width: 860px)").matches ? 2 : 3);
 const elSections   = document.getElementById("sections");
 const elRail       = document.getElementById("railnav");
@@ -323,8 +324,16 @@ function cardHtml(p) {
   </article>`;
 }
 
+function sciHubUrl(link) {
+  if (!link) return "";
+  return SCIHUB_MIRROR + link;
+}
+
 function cardActs(p) {
-  if (!p.id) return "";
+  const sciBtn = p.link
+    ? `<a class="scihubbtn" href="${esc(sciHubUrl(p.link))}" target="_blank" rel="noopener noreferrer" title="Sci-Hub" aria-label="Sci-Hub">SH</a>`
+    : "";
+  if (!p.id) return sciBtn ? `<span class="cardacts">${sciBtn}</span>` : "";
   const b = (status, glyph, label) =>
     `<button data-pstatus="${status}" data-id="${p.id}" title="${label}" aria-label="${label}">${glyph}</button>`;
   const linkBtn = `<button class="urlbtn" data-editurl="${p.id}" data-link="${esc(p.link)}" title="replace link" aria-label="replace link">↗</button>`;
@@ -332,7 +341,7 @@ function cardActs(p) {
   if (p.status === "starred")    triage = b("trash","✕","trash") + b("inbox","★","unstar");
   else if (p.status === "trash") triage = b("inbox","↩","restore") + b("starred","☆","star");
   else                           triage = b("trash","✕","trash") + b("starred","☆","star");
-  return `<span class="cardacts">${linkBtn}${triage}</span>`;
+  return `<span class="cardacts">${sciBtn}${linkBtn}${triage}</span>`;
 }
 
 elSections.addEventListener("click", async (e) => {

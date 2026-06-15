@@ -2,7 +2,7 @@
  * GET /api/papers
  *   ?q=<search text>      full-text search over title/authors/snippet
  *   ?tag=<term>           filter to a single tag
- *   ?status=<s>           filter to inbox | starred | trash (default: all)
+ *   ?status=<s>           filter to inbox | starred | trash (default: all except trash)
  *   ?limit=50&offset=0    pagination
  *
  * POST /api/papers        set a paper's triage status
@@ -26,12 +26,6 @@ export async function onRequestGet({ request, env }) {
   const binds = [];
 
   if (q) {
-    // Two matchers, OR'd together:
-    //  1. FTS5 prefix match — fast, handles "connect" → "connectedness".
-    //  2. Substring LIKE on each word — handles MID-word queries that FTS
-    //     can't ("uman" → "Human", "nviron" → "Environmental"), since FTS5
-    //     has no leading-wildcard. Every word must appear somewhere in
-    //     title/authors/snippet (AND across words, substring within each).
     const words = q.split(/\s+/).filter(Boolean);
     const likeClauses = words.map(
       () => `(p.title LIKE ? ESCAPE '\\' OR p.authors LIKE ? ESCAPE '\\' OR p.snippet LIKE ? ESCAPE '\\')`
@@ -53,6 +47,8 @@ export async function onRequestGet({ request, env }) {
   if (status && STATUSES.includes(status)) {
     where.push(`p.status = ?`);
     binds.push(status);
+  } else {
+    where.push(`p.status != 'trash'`);
   }
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -83,7 +79,6 @@ export async function onRequestPost({ request, env }) {
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
 
-  // Write guard — same AUTH secret as /api/sections.
   if (!env.AUTH || body.auth !== env.AUTH) {
     return json({ error: "unauthorized" }, 401);
   }
@@ -91,8 +86,6 @@ export async function onRequestPost({ request, env }) {
   const id = parseInt(body.id, 10);
   if (!Number.isFinite(id)) return json({ error: "id required" }, 400);
 
-  // Action: "tag" (add/remove a tag) or "status" (triage). Defaults to
-  // status for backward compatibility with existing star/trash calls.
   const action = body.action || "status";
 
   try {
@@ -124,7 +117,6 @@ export async function onRequestPost({ request, env }) {
           .bind(link, id)
           .run();
       } catch (e) {
-        // UNIQUE constraint: another paper already has this link.
         if (/UNIQUE/i.test(String(e))) {
           return json({ error: "another paper already has that link" }, 409);
         }
@@ -133,7 +125,6 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: true, id, link });
     }
 
-    // status action
     const status = (body.status || "").trim();
     if (!STATUSES.includes(status)) return json({ error: "status must be inbox|starred|trash" }, 400);
     await env.research
@@ -146,7 +137,6 @@ export async function onRequestPost({ request, env }) {
   }
 }
 
-// Turn user text into a safe FTS5 prefix query.
 function ftsQuery(q) {
   return q
     .replace(/["']/g, " ")
@@ -156,8 +146,6 @@ function ftsQuery(q) {
     .join(" ");
 }
 
-// Escape LIKE wildcards so a literal % or _ in the query isn't treated as
-// a pattern. Paired with ESCAPE '\' on the LIKE clauses below.
 function escapeLike(s) {
   return s.replace(/[\\%_]/g, (c) => "\\" + c);
 }

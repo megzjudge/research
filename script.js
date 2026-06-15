@@ -1,46 +1,76 @@
-const FETCH = 24;                    // papers loaded per section (API cap)
-// Cards shown per carousel page — must match the CSS column count below
-// (.carousel .grid-page), so cards never wrap to a second row.
+const FETCH = 24;
 const pageSize = () => (window.matchMedia("(max-width: 860px)").matches ? 2 : 3);
-const elSections = document.getElementById("sections");
-const elRail     = document.getElementById("railnav");
-const elStatus   = document.getElementById("status");
-const elQ        = document.getElementById("q");
-const elNew      = document.getElementById("newtag");
-const elAdd      = document.getElementById("addbtn");
+const elSections   = document.getElementById("sections");
+const elRail       = document.getElementById("railnav");
+const elStatus     = document.getElementById("status");
+const elQ          = document.getElementById("q");
+const elNew        = document.getElementById("newtag");
+const elAdd        = document.getElementById("addbtn");
+const elTrashLink  = document.getElementById("trashlink");
+const elTrashCount = document.getElementById("trashcount");
 
-const pageOf = new Map();            // tag -> current carousel page
-let view   = "sections";            // sections | search | trash
-let authPw = null;                  // cached password for this session
-let allTags = [];                   // every section tag, for the per-card "+" dropdown
+const pageOf = new Map();
+let view   = "sections";
+let authPw = null;
+let allTags = [];
 
-// ── alias map (keep in sync with sections.js / worker.js) ────────────────
+const RAIL_GROUPS = [
+  {
+    banner: "Personality",
+    tags: ["Big Five", "Big Ten", "MBTI", "HEXACO", "Indian Psychology"],
+  },
+  {
+    banner: "Deviancy",
+    tags: ["Dark Triad", "ADHD and Nicotine", "Bisexuality", "Sociosexuality"],
+  },
+  {
+    banner: "Specifics",
+    tags: ["Experimental Philosophy", "Followed Authors", "Intelligent Quotient"],
+  },
+];
+
+// Keep in sync with worker.js
 const TERM_ALIASES = {
-  "big 5":                   "Big Five",
-  "big five":                "Big Five",
-  "myers-briggs":            "MBTI",
-  "myers briggs":            "MBTI",
-  "dark tetrad":             "Dark Triad",
-  "machiavellianism":        "Dark Triad",
-  "bisexual":                "Bisexuality",
-  "bisexual women":          "Bisexuality",
-  "triguna":                 "Indian Psychology",
-  "pancha":                  "Indian Psychology",
-  "pancha kosha":            "Indian Psychology",
-  "guna":                    "Indian Psychology",
-  "vedic":                   "Indian Psychology",
-  "sattva":                  "Indian Psychology",
-  "atman":                   "Indian Psychology",
-  "indian":                  "Indian Psychology",
+  "big 5": "Big Five",
+  "big five": "Big Five",
+  "myers-briggs": "MBTI",
+  "myers briggs": "MBTI",
+  "dark tetrad": "Dark Triad",
+  "machiavellianism": "Dark Triad",
+  "bisexual": "Bisexuality",
+  "bisexual women": "Bisexuality",
+  "sattva and rajas and tamas": "Indian Psychology",
+  "indian and psychology and personality": "Indian Psychology",
+  "triguna and personality": "Indian Psychology",
+  "vedic and psychology": "Indian Psychology",
+  "pancha and kosha": "Indian Psychology",
+  "pancha kosha": "Indian Psychology",
+  "guna and personality": "Indian Psychology",
+  "atman and psychology": "Indian Psychology",
+  "triguna": "Indian Psychology",
+  "pancha": "Indian Psychology",
+  "guna": "Indian Psychology",
+  "vedic": "Indian Psychology",
+  "sattva": "Indian Psychology",
+  "atman": "Indian Psychology",
+  "indian": "Indian Psychology",
   "experimental philosophy": "Experimental Philosophy",
-  "philosophy of mind":      "Experimental Philosophy",
-  "metaphysics":             "Experimental Philosophy",
-  "epistemology":            "Experimental Philosophy",
-  "philosophy of religion":  "Experimental Philosophy",
-  "rupert sheldrake":        "Followed Authors",
-  "emil kirkegaard":         "Followed Authors",
-  "adhd and nicotine":       "ADHD and Nicotine",
-  "iq":                      "Intelligent Quotient",
+  "philosophy of mind": "Experimental Philosophy",
+  "metaphysics": "Experimental Philosophy",
+  "epistemology": "Experimental Philosophy",
+  "philosophy of religion": "Experimental Philosophy",
+  "rupert sheldrake": "Followed Authors",
+  "emil kirkegaard": "Followed Authors",
+  "adhd and nicotine": "ADHD and Nicotine",
+  "iq": "Intelligent Quotient",
+  "industriousness": "Big Ten",
+  "industriousness and orderliness": "Big Ten",
+  "intellect and aesthetics": "Big Ten",
+  "intellect and openness": "Big Ten",
+  "withdrawal and volatility": "Big Ten",
+  "disagreeableness and agreeableness": "Big Ten",
+  "enthusiasm and assertiveness": "Big Ten",
+  "compassion and politeness": "Big Ten",
 };
 
 function canonical(tag) {
@@ -71,10 +101,8 @@ async function postWrite(url, payload) {
 function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function slug(s){ return "sec-" + (s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
 
-// Acronyms that should stay fully uppercase in headings.
 const ACRONYMS = new Set(["adhd","mbti","hexaco","ocd","ptsd","iq","eq","big5","asd","bpd"]);
 
-// Prettify a tag for DISPLAY ONLY (the stored tag is never changed).
 function prettyLabel(raw) {
   const s = (raw || "").trim();
 
@@ -119,7 +147,17 @@ function ago(iso){
   return Math.floor(days/365)+"y ago";
 }
 
-/* ── default view: starred row + sections of cards ── */
+function updateTrashLink(count) {
+  if (!elTrashLink || !elTrashCount) return;
+  elTrashCount.textContent = count;
+  elTrashLink.hidden = count === 0;
+}
+
+elTrashLink?.addEventListener("click", (e) => {
+  e.preventDefault();
+  runTrash();
+});
+
 async function loadSections() {
   view = "sections";
   elStatus.textContent = "loading…";
@@ -137,28 +175,39 @@ async function loadSections() {
 
 function renderRail(sections, starredCount, trashCount) {
   elRail.innerHTML = "";
+  const byTag = new Map(sections.map((s) => [s.tag, s]));
+
+  updateTrashLink(trashCount);
+
   if (starredCount) {
     const li = document.createElement("li");
     li.innerHTML = `<a href="#sec-starred"><span>★ starred</span><span class="c">${starredCount}</span></a>`;
     elRail.appendChild(li);
   }
+
+  for (const group of RAIL_GROUPS) {
+    const liBanner = document.createElement("li");
+    liBanner.className = "rail-banner";
+    liBanner.textContent = group.banner;
+    elRail.appendChild(liBanner);
+
+    for (const tag of group.tags) {
+      const s = byTag.get(tag);
+      if (!s || s.hidden) continue;
+      const li = document.createElement("li");
+      li.innerHTML = `<a href="#${slug(s.tag)}"><span>${prettyLabel(s.label)}</span><span class="c">${s.count}</span></a>`;
+      elRail.appendChild(li);
+    }
+  }
+
+  const grouped = new Set(RAIL_GROUPS.flatMap((g) => g.tags));
   for (const s of sections) {
-    if (s.hidden) continue;
+    if (s.hidden || grouped.has(s.tag)) continue;
     const li = document.createElement("li");
     li.innerHTML = `<a href="#${slug(s.tag)}"><span>${prettyLabel(s.label)}</span><span class="c">${s.count}</span></a>`;
     elRail.appendChild(li);
   }
-  if (trashCount) {
-    const li = document.createElement("li");
-    li.innerHTML = `<a href="#" data-trash><span>trash</span><span class="c">${trashCount}</span></a>`;
-    elRail.appendChild(li);
-  }
 }
-
-elRail.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-trash]");
-  if (t) { e.preventDefault(); runTrash(); }
-});
 
 function renderAll(starred, sections) {
   elSections.innerHTML = "";
@@ -213,7 +262,6 @@ function renderAll(starred, sections) {
   elSections.querySelectorAll(".section").forEach(el => railObserver.observe(el));
 }
 
-/* ── carousel ── */
 function initCarousel(sec, s) {
   const papers = s.papers || [];
   const grid = sec.querySelector(".grid-page");
@@ -247,17 +295,12 @@ window.addEventListener("resize", () => {
   }, 150);
 });
 
-/* ── cards ── */
 function cardHtml(p) {
-  // FIX: fold each raw tag to its canonical, dedupe, then use prettyLabel for display.
-  // This fixes chips showing "adhd AND nicotine" instead of "ADHD and Nicotine",
-  // and collapses alias tags (e.g. "Epistemology") to their canonical chip.
   const canonTags = [...new Set((p.tags || []).map(t => canonical(t)))];
   const chips = canonTags.map(c =>
     `<button class="tagchip" data-tag="${esc(c)}">${prettyLabel(c)}</button>`
   ).join("");
 
-  // "+" chip: only when we know the paper id and there are canonical tags it doesn't yet have.
   const has = new Set(canonTags);
   const addable = allTags.filter(t => !has.has(t));
   const plus = (p.id && addable.length)
@@ -293,7 +336,6 @@ function cardActs(p) {
   return `<span class="cardacts">${linkBtn}${triage}</span>`;
 }
 
-/* ── one delegated listener: tag chips + "+" menu + triage buttons ── */
 elSections.addEventListener("click", async (e) => {
   const urlBtn = e.target.closest("[data-editurl]");
   if (urlBtn) {
@@ -330,11 +372,9 @@ elSections.addEventListener("click", async (e) => {
     return;
   }
 
-  // A real tag chip (not the "+"): filter to that section.
   const chip = e.target.closest(".tagchip:not(.tagadd)");
   if (chip) { elQ.value = ""; runSearch("", chip.getAttribute("data-tag")); return; }
 
-  // Triage buttons.
   const act = e.target.closest("[data-pstatus]");
   if (!act) return;
   act.disabled = true;
@@ -379,7 +419,6 @@ function wireSectionActions() {
   });
 }
 
-/* ── search mode ── */
 let debounce;
 elQ.addEventListener("input", () => {
   clearTimeout(debounce);
@@ -410,7 +449,6 @@ async function runSearch(q, tag) {
   }
 }
 
-/* ── trash view ── */
 async function runTrash() {
   view = "trash";
   elStatus.textContent = "loading trash…";
@@ -423,13 +461,13 @@ async function runTrash() {
         <div class="grid">${papers.map(cardHtml).join("")}</div>
       </section>`;
     elStatus.textContent = papers.length ? "" : "Trash is empty.";
+    updateTrashLink(papers.length);
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (e) {
     elStatus.textContent = "Couldn't load trash.";
   }
 }
 
-/* ── add a construct ── */
 async function addConstruct() {
   const tag = elNew.value.trim();
   if (!tag) return;
@@ -442,7 +480,6 @@ async function addConstruct() {
 elAdd.onclick = addConstruct;
 elNew.addEventListener("keydown", e => { if (e.key === "Enter") addConstruct(); });
 
-/* ── highlight active rail link on scroll ── */
 const railObserver = new IntersectionObserver((entries) => {
   for (const en of entries) {
     if (en.isIntersecting) {

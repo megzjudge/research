@@ -86,7 +86,6 @@ const TERM_ALIASES = {
   "disagreeableness and agreeableness": "Big Ten",
   "enthusiasm and assertiveness": "Big Ten",
   "compassion and politeness": "Big Ten",
-  "industriousness": "Big Ten",
 };
 
 function canonical(term) {

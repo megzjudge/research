@@ -1,18 +1,25 @@
 /**
  * GET /api/papers
  *   ?q=<search text>      full-text search over title/authors/snippet
- *   ?tag=<term>           filter to a single tag
- *   ?status=<s>           filter to inbox | starred | trash (default: all except trash)
+ *   ?tag=<term>           filter to a single tag (umbrella tags include member tags)
+ *   ?status=<s>           filter to inbox | starred | trash
  *   ?limit=50&offset=0    pagination
  *
- * POST /api/papers        set a paper's triage status
- *   body: { id, status }  status: inbox | starred | trash
+ * POST /api/papers        set a paper's triage status, tag, or link
  *
  * Binding required on the Pages project:
  *   D1 database  ->  variable name `research`
  */
 
 const STATUSES = ["inbox", "starred", "trash"];
+
+const UMBRELLA_TAGS = {
+  "Big Ten": ["Industriousness"],
+};
+
+function umbrellaMembers(tag) {
+  return [tag, ...(UMBRELLA_TAGS[tag] || [])];
+}
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
@@ -41,8 +48,10 @@ export async function onRequestGet({ request, env }) {
     }
   }
   if (tag) {
-    where.push(`p.id IN (SELECT paper_id FROM tags WHERE tag = ?)`);
-    binds.push(tag);
+    const members = umbrellaMembers(tag);
+    const placeholders = members.map(() => "?").join(", ");
+    where.push(`p.id IN (SELECT paper_id FROM tags WHERE tag IN (${placeholders}))`);
+    binds.push(...members);
   }
   if (status && STATUSES.includes(status)) {
     where.push(`p.status = ?`);

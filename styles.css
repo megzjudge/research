@@ -1,12 +1,12 @@
 :root {
-  --paper:   #16151a;   /* page background — warm near-black */
-  --card:    #1f1d25;   /* card surface, slightly lifted */
-  --ink:     #ece8f0;   /* primary text */
-  --muted:   #a39db0;   /* secondary text */
-  --faint:   #6f6a7a;   /* timestamps, counts */
-  --line:    #2c2a34;   /* hairline borders */
+  --paper:   #16151a;
+  --card:    #1f1d25;
+  --ink:     #ece8f0;
+  --muted:   #a39db0;
+  --faint:   #6f6a7a;
+  --line:    #2c2a34;
   --line-strong: #423e50;
-  --accent:  #b69cf0;   /* brightened violet — reads on dark */
+  --accent:  #b69cf0;
   --accent-soft: #2a2440;
   --serif: "Newsreader", Georgia, serif;
   --mono:  "IBM Plex Mono", ui-monospace, monospace;
@@ -17,11 +17,9 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 ::selection { background: var(--accent-soft); }
 @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none!important} }
 
-/* ── shell: sticky nav rail + content ── */
 .layout { display: grid; grid-template-columns: 220px 1fr; gap: 0; max-width: 1240px; margin: 0 auto; }
 @media (max-width: 860px){ .layout{ grid-template-columns: 1fr; } }
 
-/* ── left rail ── */
 .rail { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
   border-right: 1px solid var(--line); padding: 34px 22px; }
 @media (max-width: 860px){ .rail{ position: static; height: auto; border-right: none;
@@ -35,6 +33,20 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
   border-bottom: 1px solid transparent; }
 .railnav li a:hover, .railnav li a.active { color: var(--accent); }
 .railnav li a .c { color: var(--faint); }
+.railnav li.rail-banner {
+  list-style: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 18px 0 6px;
+  margin: 0;
+  pointer-events: none;
+  user-select: none;
+}
+.railnav li.rail-banner:first-child { padding-top: 0; }
 .addbox { display: flex; gap: 6px; }
 .addbox input { flex: 1; min-width: 0; font-family: var(--mono); font-size: 12px; padding: 7px 8px;
   border: 1px solid var(--line-strong); border-radius: 3px; background: var(--card); color: var(--ink); }
@@ -43,8 +55,22 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
   border: 1px solid var(--ink); background: var(--ink); color: var(--paper); border-radius: 3px; }
 .addbox button:hover { background: var(--accent); border-color: var(--accent); }
 .addhint { font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin: 8px 0 0; line-height:1.4; }
+.trashlink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  text-decoration: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+.trashlink:hover { color: var(--accent); }
+.trashlink .c { margin-left: auto; color: var(--faint); }
+.trashicon { font-size: 14px; line-height: 1; }
 
-/* ── main content ── */
 .content { padding: 34px 30px 80px; min-width: 0; }
 @media (max-width: 540px){ .content{ padding: 24px 18px 60px; } }
 .searchwrap { margin-bottom: 30px; }
@@ -53,7 +79,6 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .search::placeholder { color: var(--muted); }
 .search:focus { border-color: var(--accent); }
 
-/* ── section band ── */
 .section { margin: 0 0 46px; scroll-margin-top: 18px; }
 .section.hidden-sec { opacity: .5; }
 .sechead { display: flex; align-items: baseline; gap: 12px; padding-bottom: 12px;
@@ -66,7 +91,6 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
   background: transparent; border: 1px solid var(--line-strong); border-radius: 3px; padding: 3px 8px; }
 .secacts button:hover { color: var(--accent); border-color: var(--accent); }
 
-/* ── card grid ── */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .cardx { background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 16px 16px 14px;
   display: flex; flex-direction: column; transition: border-color .12s, transform .12s; }
@@ -98,7 +122,6 @@ footer a { color: var(--accent); text-decoration: none; }
 footer a:hover { text-decoration: underline; }
 @media (max-width: 540px){ footer { padding: 22px 18px; } }
 
-/* ── per-section carousel: original card grid + overhanging arrows ── */
 .carousel { position: relative; }
 .navbtn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
   width: 42px; height: 42px; cursor: pointer; padding: 0;
@@ -117,7 +140,6 @@ footer a:hover { text-decoration: underline; }
   .navbtn.next { right: -9px; }
 }
 
-/* ── section chips on search-result cards ── */
 .cardx .cardtags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
 .tagchip { font-family: var(--mono); font-size: 10px; letter-spacing: .02em;
   color: var(--accent); background: var(--accent-soft);
@@ -125,7 +147,6 @@ footer a:hover { text-decoration: underline; }
   transition: color .12s, background .12s; }
 .tagchip:hover { color: var(--paper); background: var(--accent); }
 
-/* ── mobile: two cards per row ── */
 @media (max-width: 860px) {
   .grid { grid-template-columns: repeat(2, 1fr); }
   .cardx { padding: 12px 12px 11px; }
@@ -133,7 +154,6 @@ footer a:hover { text-decoration: underline; }
   .cardx .snip { font-size: 12px; }
 }
 
-/* ── triage: card footer actions + starred section ── */
 .cardfoot { margin-top: 11px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cardfoot .when { margin-top: 0; }
 .cardacts { display: flex; gap: 2px; }
@@ -143,18 +163,14 @@ footer a:hover { text-decoration: underline; }
 .cardacts button:hover { color: var(--accent); }
 .sechead .star { color: var(--accent); }
 
-/* ── paged carousel grid: always PAGE-across on one row, no wrapping ── */
-/* (search/trash use the flexible .grid above; only the carousel is fixed) */
 .carousel .grid-page { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 860px) { .carousel .grid-page { grid-template-columns: repeat(2, 1fr); } }
 
-/* ── Boolean operators in section headings: small + grey ── */
 .sechead h2 .op, .railnav .op {
   font-style: italic; font-weight: 400; color: var(--faint);
   font-size: .7em; letter-spacing: .03em; margin: 0 .15em; vertical-align: baseline;
 }
 
-/* ── per-card "+" add-tag chip and dropdown ── */
 .addtag-wrap { position: relative; display: inline-block; }
 .tagchip.tagadd { font-weight: 600; padding: 2.5px 8px; }
 .tagmenu { position: absolute; left: 0; top: calc(100% + 4px); z-index: 20;

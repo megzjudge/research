@@ -32,6 +32,8 @@ const KNOWN_TERMS = [
   "Triguna", "Pancha Kosha", "Guna", "Vedic", "Sattva", "Atman",
   "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Religion",
   "Rupert Sheldrake", "Emil Kirkegaard",
+  "Intelligent Quotient", "IQ",
+  "adhd AND nicotine", "ADHD and Nicotine",
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -40,19 +42,18 @@ const TERM_ALIASES = {
   "big five": "Big Five",
   "myers-briggs": "MBTI",
   "myers briggs": "MBTI",
-  "dark tetrad": "Dark Triad",   // merge: Tetrad folds into Triad (more common term)
-  "machiavellianism": "Dark Triad", // merge: Mach is a Dark Triad component
-  "bisexual": "Bisexuality",     // merge: bisexual / bisexual women → Bisexuality
+  "dark tetrad": "Dark Triad",
+  "machiavellianism": "Dark Triad",
+  "bisexual": "Bisexuality",
   "bisexual women": "Bisexuality",
-  // ── Indian Psychology umbrella: several alerts, one section ──
   "triguna": "Indian Psychology",
-  "pancha": "Indian Psychology",        // "Pancha" AND "Kosha" → first word is Pancha
+  "pancha": "Indian Psychology",
   "pancha kosha": "Indian Psychology",
   "guna": "Indian Psychology",
   "vedic": "Indian Psychology",
   "sattva": "Indian Psychology",
   "atman": "Indian Psychology",
-  "indian": "Indian Psychology",        // "Indian" AND "psychology" AND "personality"
+  "indian": "Indian Psychology",
   "experimental philosophy": "Experimental Philosophy",
   "philosophy of mind": "Experimental Philosophy",
   "metaphysics": "Experimental Philosophy",
@@ -60,6 +61,8 @@ const TERM_ALIASES = {
   "philosophy of religion": "Experimental Philosophy",
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",
+  "adhd and nicotine": "ADHD and Nicotine",
+  "iq": "Intelligent Quotient",
 };
 
 function canonical(term) {

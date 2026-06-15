@@ -22,9 +22,34 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v18 — Indian Psychology umbrella section (2026-06-13)";
+const VERSION = "worker v19 — Big Ten, rail groups, trash search (2026-06-15)";
 
 const KNOWN_TERMS = [
+  // Big Ten — before any overlapping short terms
+  "industriousness AND orderliness",
+  "intellect AND aesthetics",
+  "intellect AND openness",
+  "withdrawal AND volatility",
+  "disagreeableness AND agreeableness",
+  "enthusiasm AND assertiveness",
+  "compassion AND politeness",
+  // Indian Psychology — full boolean phrases first
+  '"sattva" AND "rajas" AND "tamas"',
+  "sattva AND rajas AND tamas",
+  '"indian" AND "psychology" AND "personality"',
+  "indian AND psychology AND personality",
+  '"triguna" AND "personality"',
+  "triguna AND personality",
+  '"vedic" AND "psychology"',
+  "vedic AND psychology",
+  '"pancha" AND "kosha"',
+  "pancha AND kosha",
+  "Pancha Kosha",
+  '"guna" AND "personality"',
+  "guna AND personality",
+  '"atman" AND "psychology"',
+  "atman AND psychology",
+  // Everything else
   "Dark Tetrad", "Dark Triad", "Machiavellianism",
   "Big Five", "Big 5", "MBTI", "Myers-Briggs", "Myers Briggs",
   "HEXACO", "Sociosexuality",
@@ -33,25 +58,8 @@ const KNOWN_TERMS = [
   "Rupert Sheldrake", "Emil Kirkegaard",
   "Intelligent Quotient", "IQ",
   "adhd AND nicotine", "ADHD and Nicotine",
-  "industriousness AND orderliness", "intellect AND aesthetics", "intellect AND openness", "withdrawal AND volatility", "disagreeableness AND agreeableness", "enthusiasm AND assertiveness", "compassion AND politeness",
-  '"sattva" AND "rajas" AND "tamas"',
-  'sattva AND rajas AND tamas',
-  '"indian" AND "psychology" AND "personality"',
-  'indian AND psychology AND personality',
-  '"triguna" AND "personality"',
-  'triguna AND personality',
-  '"vedic" AND "psychology"',
-  'vedic AND psychology',
-  '"pancha" AND "kosha"',
-  'pancha AND kosha',
-  'Pancha Kosha',
-  '"guna" AND "personality"',
-  'guna AND personality',
-  '"atman" AND "psychology"',
-  'atman AND psychology',
 ];
 
-// Map variant spellings to one canonical tag so they share a section.
 const TERM_ALIASES = {
   "big 5": "Big Five",
   "big five": "Big Five",
@@ -69,6 +77,13 @@ const TERM_ALIASES = {
   "pancha kosha": "Indian Psychology",
   "guna and personality": "Indian Psychology",
   "atman and psychology": "Indian Psychology",
+  "triguna": "Indian Psychology",
+  "pancha": "Indian Psychology",
+  "guna": "Indian Psychology",
+  "vedic": "Indian Psychology",
+  "sattva": "Indian Psychology",
+  "atman": "Indian Psychology",
+  "indian": "Indian Psychology",
   "experimental philosophy": "Experimental Philosophy",
   "philosophy of mind": "Experimental Philosophy",
   "metaphysics": "Experimental Philosophy",
@@ -78,6 +93,7 @@ const TERM_ALIASES = {
   "emil kirkegaard": "Followed Authors",
   "adhd and nicotine": "ADHD and Nicotine",
   "iq": "Intelligent Quotient",
+  "industriousness": "Big Ten",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",
@@ -85,7 +101,6 @@ const TERM_ALIASES = {
   "disagreeableness and agreeableness": "Big Ten",
   "enthusiasm and assertiveness": "Big Ten",
   "compassion and politeness": "Big Ten",
-  "industriousness": "Big Ten",
 };
 
 function canonical(term) {

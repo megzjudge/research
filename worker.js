@@ -30,6 +30,8 @@ const KNOWN_TERMS = [
   "HEXACO", "Sociosexuality",
   "Bisexual women", "Bisexuality", "Bisexual",
   "Triguna", "Pancha Kosha", "Guna", "Vedic", "Sattva", "Atman",
+  "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Religion",
+  "Rupert Sheldrake", "Emil Kirkegaard",
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -51,6 +53,13 @@ const TERM_ALIASES = {
   "sattva": "Indian Psychology",
   "atman": "Indian Psychology",
   "indian": "Indian Psychology",        // "Indian" AND "psychology" AND "personality"
+  "experimental philosophy": "Experimental Philosophy",
+  "philosophy of mind": "Experimental Philosophy",
+  "metaphysics": "Experimental Philosophy",
+  "epistemology": "Experimental Philosophy",
+  "philosophy of religion": "Experimental Philosophy",
+  "rupert sheldrake": "Followed Authors",
+  "emil kirkegaard": "Followed Authors",
 };
 
 function canonical(term) {

@@ -38,7 +38,7 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
   display: flex;
   flex-direction: column;
   border-right: 2px solid var(--accent-bar);
-  background: linear-gradient(180deg, rgba(42, 36, 64, 0.55) 0%, rgba(42, 36, 64, 0.12) 45%, transparent 100%);
+  background: linear-gradient(to left, rgba(42, 36, 64, 0.55) 0%, rgba(42, 36, 64, 0.12) 50%, transparent 100%);
   padding: 36px 26px 40px;
   box-shadow: inset -1px 0 0 var(--accent-bar-soft);
 }

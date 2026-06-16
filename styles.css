@@ -201,24 +201,31 @@ footer a:hover { text-decoration: underline; }
 
 .cardfoot { margin-top: 11px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cardfoot .when { margin-top: 0; }
-.cardacts { display: flex; gap: 2px; }
-.cardacts button { font-size: 13px; line-height: 1; color: var(--faint);
-  background: transparent; border: none; cursor: pointer; padding: 2px 5px;
-  border-radius: 3px; transition: color .12s; }
-.cardacts button:hover { color: var(--accent); }
+.cardacts { display: flex; align-items: center; gap: 2px; }
+.cardacts button,
+.cardacts .scihubbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--faint);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 3px;
+  transition: color .12s;
+  text-decoration: none;
+}
+.cardacts button:hover,
+.cardacts .scihubbtn:hover { color: var(--accent); }
 .cardacts .scihubbtn {
   font-family: var(--mono);
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  line-height: 1;
-  color: var(--faint);
-  text-decoration: none;
-  padding: 2px 5px;
-  border-radius: 3px;
-  transition: color .12s;
 }
-.cardacts .scihubbtn:hover { color: var(--accent); }
 .sechead .star { color: var(--accent); }
 
 .carousel .grid-page { grid-template-columns: repeat(3, 1fr); }

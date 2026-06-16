@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v21 — fix from-is-not-defined log, deploy check (2026-06-16)";
+const VERSION = "worker v22 — High Sex Drive alert (2026-06-16)";
 
 const KNOWN_TERMS = [
   // Big Ten aspect alerts — before overlapping short terms
@@ -53,7 +53,7 @@ const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism",
   "Industriousness",
   "Big Five", "Big 5", "MBTI", "Myers-Briggs", "Myers Briggs",
-  "HEXACO", "Sociosexuality",
+  "HEXACO", "Sociosexuality", "high sex drive",
   "Bisexual women", "Bisexuality", "Bisexual",
   "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Language", "Philosophy of Religion",
   "Rupert Sheldrake", "Emil Kirkegaard",
@@ -95,6 +95,7 @@ const TERM_ALIASES = {
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",
   "adhd and nicotine": "ADHD and Nicotine",
+  "high sex drive": "High Sex Drive",
   "iq": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
   "industriousness and orderliness": "Big Ten",

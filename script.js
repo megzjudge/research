@@ -59,6 +59,7 @@ const TERM_ALIASES = {
   "philosophy of mind": "Experimental Philosophy",
   "metaphysics": "Experimental Philosophy",
   "epistemology": "Experimental Philosophy",
+  "philosophy of language": "Experimental Philosophy",
   "philosophy of religion": "Experimental Philosophy",
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",

@@ -16,6 +16,14 @@
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); line-height: 1.5; }
+@media (min-width: 861px) {
+  body {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+}
 ::selection { background: var(--accent-soft); }
 @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none!important} }
 
@@ -26,6 +34,14 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
   max-width: 1240px;
   margin: 0 auto;
   min-height: 100vh;
+  width: 100%;
+}
+@media (min-width: 861px) {
+  .layout {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+  }
 }
 @media (max-width: 860px){ .layout{ grid-template-columns: 1fr; min-height: 0; } }
 
@@ -41,6 +57,13 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
   background: linear-gradient(to left, rgba(42, 36, 64, 0.55) 0%, rgba(42, 36, 64, 0.12) 50%, transparent 100%);
   padding: 36px 26px 40px;
   box-shadow: inset -1px 0 0 var(--accent-bar-soft);
+}
+@media (min-width: 861px) {
+  .rail {
+    position: static;
+    height: 100%;
+    max-height: 100%;
+  }
 }
 @media (max-width: 860px){
   .rail{
@@ -116,6 +139,13 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .trashicon { font-size: 14px; line-height: 1; }
 
 .content { padding: 36px 34px 80px; min-width: 0; border-left: 1px solid var(--accent-bar-soft); }
+@media (min-width: 861px) {
+  .content {
+    overflow-y: auto;
+    height: 100%;
+    padding-bottom: 36px;
+  }
+}
 @media (max-width: 860px){ .content{ border-left: none; } }
 @media (max-width: 540px){ .content{ padding: 24px 18px 60px; } }
 .searchwrap { margin-bottom: 30px; }
@@ -156,15 +186,21 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 footer {
   border-top: 1px solid var(--accent-bar-soft);
   margin-top: 20px;
-  padding: 26px 30px;
+  padding: 18px 30px 22px;
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 0.04em;
   color: var(--faint);
   text-align: center;
+  flex-shrink: 0;
 }
+footer p { margin: 0; }
+footer p + p { margin-top: 6px; }
 footer a { color: var(--accent); text-decoration: none; }
 footer a:hover { text-decoration: underline; }
+@media (min-width: 861px) {
+  footer { margin-top: 0; }
+}
 @media (max-width: 540px){ footer { padding: 22px 18px; } }
 
 .carousel { position: relative; }

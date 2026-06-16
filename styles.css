@@ -55,7 +55,7 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
   flex-direction: column;
   border-right: 2px solid var(--accent-bar);
   background: linear-gradient(to left, rgba(42, 36, 64, 0.55) 0%, rgba(42, 36, 64, 0.12) 50%, transparent 100%);
-  padding: 36px 26px 40px;
+  padding: 36px 26px 24px;
   box-shadow: inset -1px 0 0 var(--accent-bar-soft);
 }
 @media (min-width: 861px) {
@@ -63,6 +63,7 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
     position: static;
     height: 100%;
     max-height: 100%;
+    overflow: hidden;
   }
 }
 @media (max-width: 860px){
@@ -78,7 +79,13 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .brand { font-family: var(--serif); font-weight: 600; font-size: 23px; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 8px; }
 .brand .dot { color: var(--accent); }
 .tagline { font-size: 13px; line-height: 1.45; color: var(--muted); margin: 0 0 28px; }
-.railnav { list-style: none; margin: 0 0 auto; padding: 0; width: 100%; flex: 1; }
+.railnav { list-style: none; margin: 0; padding: 0; width: 100%; flex: 1; min-height: 0; overflow-y: auto; }
+@media (min-width: 861px) {
+  .railnav { margin-bottom: 16px; }
+}
+@media (max-width: 860px) {
+  .railnav { margin: 0 0 auto; flex: 1; min-height: 0; overflow-y: visible; }
+}
 .railnav li a {
   display: flex;
   justify-content: space-between;
@@ -126,13 +133,16 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: auto;
+  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--accent-bar-soft);
   text-decoration: none;
   font-family: var(--mono);
   font-size: 12px;
   color: var(--muted);
+}
+@media (min-width: 861px) {
+  .trashlink { margin-top: 16px; }
 }
 .trashlink:hover { color: var(--accent); }
 .trashlink .c { margin-left: auto; color: var(--faint); }
@@ -183,25 +193,43 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 
 .statusline { font-family: var(--mono); font-size: 12px; color: var(--faint); padding: 50px 0; text-align: center; }
 
-footer {
+footer.site-footer {
   border-top: 1px solid var(--accent-bar-soft);
-  margin-top: 20px;
-  padding: 18px 30px 22px;
+  padding: 16px 0 0;
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 10px;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
   color: var(--faint);
-  text-align: center;
   flex-shrink: 0;
 }
-footer p { margin: 0; }
-footer p + p { margin-top: 6px; }
-footer a { color: var(--accent); text-decoration: none; }
-footer a:hover { text-decoration: underline; }
-@media (min-width: 861px) {
-  footer { margin-top: 0; }
+footer.site-footer p { margin: 0; }
+footer.site-footer p + p { margin-top: 6px; }
+footer.site-footer a { color: var(--accent); text-decoration: none; }
+footer.site-footer a:hover { text-decoration: underline; }
+
+footer.rail-footer {
+  display: none;
+  margin-top: 14px;
+  text-align: left;
 }
-@media (max-width: 540px){ footer { padding: 22px 18px; } }
+
+footer.page-footer {
+  margin-top: 20px;
+  padding: 18px 30px 22px;
+  text-align: center;
+}
+
+@media (min-width: 861px) {
+  footer.rail-footer {
+    display: block;
+    margin-top: auto;
+  }
+  footer.page-footer { display: none; }
+}
+@media (max-width: 540px) {
+  footer.page-footer { padding: 22px 18px; }
+}
 
 .carousel { position: relative; }
 .navbtn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;

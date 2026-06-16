@@ -26,7 +26,7 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Specifics",
-    tags: ["Experimental Philosophy", "Followed Authors", "Intelligent Quotient"],
+    tags: ["Experimental Philosophy", "Followed Authors", "Intelligence Quotient"],
   },
 ];
 
@@ -64,7 +64,8 @@ const TERM_ALIASES = {
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",
   "adhd and nicotine": "ADHD and Nicotine",
-  "iq": "Intelligent Quotient",
+  "iq": "Intelligence Quotient",
+  "intelligent quotient": "Intelligence Quotient",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",

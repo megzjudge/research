@@ -7,30 +7,7 @@
  * Binding required on the Pages project: D1 -> variable `research`
  */
 
-const UMBRELLA_TAGS = {
-  "Big Ten": ["Industriousness"],
-  "Indian Psychology": [
-    "Guna", "guna", "Indian", "indian", "Vedic", "vedic",
-    "Sattva", "sattva", "Pancha", "pancha", "Triguna", "triguna", "Atman", "atman",
-  ],
-  "Experimental Philosophy": [
-    "Philosophy of Mind", "philosophy of mind",
-    "Metaphysics", "metaphysics",
-    "Epistemology", "epistemology",
-    "Philosophy of Language", "philosophy of language",
-    "Philosophy of Religion", "philosophy of religion",
-    "experimental philosophy",
-  ],
-  "Intelligence Quotient": ["Intelligent Quotient", "intelligent quotient", "IQ", "iq"],
-};
-
-function umbrellaMembers(canonical) {
-  return [canonical, ...(UMBRELLA_TAGS[canonical] || [])];
-}
-
-function isFoldedIntoUmbrella(tag) {
-  return Object.values(UMBRELLA_TAGS).some((members) => members.includes(tag));
-}
+import { umbrellaMembers, isFoldedIntoUmbrella, UMBRELLA_TAGS } from "../lib/umbrella.js";
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);

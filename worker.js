@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v22 — High Sex Drive alert (2026-06-16)";
+const VERSION = "worker v23 — Intelligence Quotient umbrella (2026-06-16)";
 
 const KNOWN_TERMS = [
   // Big Ten aspect alerts — before overlapping short terms
@@ -57,7 +57,7 @@ const KNOWN_TERMS = [
   "Bisexual women", "Bisexuality", "Bisexual",
   "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Language", "Philosophy of Religion",
   "Rupert Sheldrake", "Emil Kirkegaard",
-  "Intelligence Quotient", "IQ",
+  "Intelligence Quotient", "Intelligent Quotient", "IQ",
   "adhd AND nicotine", "ADHD and Nicotine",
 ];
 
@@ -98,6 +98,7 @@ const TERM_ALIASES = {
   "high sex drive": "High Sex Drive",
   "iq": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
+  "intelligence quotient": "Intelligence Quotient",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",

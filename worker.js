@@ -57,7 +57,7 @@ const KNOWN_TERMS = [
   "Bisexual women", "Bisexuality", "Bisexual",
   "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Language", "Philosophy of Religion",
   "Rupert Sheldrake", "Emil Kirkegaard",
-  "Intelligent Quotient", "IQ",
+  "Intelligence Quotient", "IQ",
   "adhd AND nicotine", "ADHD and Nicotine",
 ];
 
@@ -95,7 +95,8 @@ const TERM_ALIASES = {
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",
   "adhd and nicotine": "ADHD and Nicotine",
-  "iq": "Intelligent Quotient",
+  "iq": "Intelligence Quotient",
+  "intelligent quotient": "Intelligence Quotient",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",

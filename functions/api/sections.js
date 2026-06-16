@@ -7,7 +7,14 @@
  * Binding required on the Pages project: D1 -> variable `research`
  */
 
-import { umbrellaMembers, isFoldedIntoUmbrella, UMBRELLA_TAGS } from "../lib/umbrella.js";
+/**
+ * GET  /api/sections           -> starred papers + ordered sections with papers
+ *   ?per=24  max papers per section (default 6, cap 24)
+ *
+ * POST /api/sections           -> create or update curation for one tag
+ *
+ * Binding required on the Pages project: D1 -> variable `research`
+ */
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
@@ -28,21 +35,12 @@ export async function onRequestGet({ request, env }) {
       .all()).results || [];
 
     const cur = new Map(curRows.map((r) => [r.tag, r]));
+    const countOf = new Map(tagRows.map((r) => [r.tag, r.count]));
 
     const allTags = new Set([
       ...tagRows.map((r) => r.tag),
       ...curRows.map((r) => r.tag),
     ]);
-    for (const t of [...allTags]) {
-      if (isFoldedIntoUmbrella(t)) allTags.delete(t);
-    }
-
-    const countOf = new Map(tagRows.map((r) => [r.tag, r.count]));
-    for (const [canonical, members] of Object.entries(UMBRELLA_TAGS)) {
-      let total = countOf.get(canonical) || 0;
-      for (const m of members) total += countOf.get(m) || 0;
-      countOf.set(canonical, total);
-    }
 
     let sections = [...allTags].map((tag) => {
       const c = cur.get(tag) || {};
@@ -65,19 +63,17 @@ export async function onRequestGet({ request, env }) {
 
     for (const s of sections) {
       if (s.hidden || s.count === 0) { s.papers = []; continue; }
-      const members = umbrellaMembers(s.tag);
-      const placeholders = members.map(() => "?").join(", ");
       const { results } = await env.research
         .prepare(
           `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
                   (SELECT group_concat(tag, '|') FROM tags WHERE paper_id = p.id) AS tags
            FROM papers p
            WHERE p.status = 'inbox'
-             AND p.id IN (SELECT paper_id FROM tags WHERE tag IN (${placeholders}))
+             AND p.id IN (SELECT paper_id FROM tags WHERE tag = ?)
            ORDER BY p.first_seen DESC
            LIMIT ?`
         )
-        .bind(...members, per)
+        .bind(s.tag, per)
         .all();
       s.papers = (results || []).map((r) => ({ ...r, tags: r.tags ? r.tags.split("|") : [] }));
     }

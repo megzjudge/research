@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v20 — Indian Psychology + Experimental Philosophy umbrellas (2026-06-16)";
+const VERSION = "worker v21 — fix from-is-not-defined log, deploy check (2026-06-16)";
 
 const KNOWN_TERMS = [
   // Big Ten aspect alerts — before overlapping short terms
@@ -147,6 +147,8 @@ export default {
   },
 
   async email(message, env, ctx) {
+    console.log(VERSION);
+
     // ── sender gate ────────────────────────────────────────────────
     // message.from is the SMTP envelope sender, which for Google mail is
     // often a per-message bounce address (…@*.bounces.google.com), NOT the

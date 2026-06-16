@@ -11,28 +11,9 @@
  *   D1 database  ->  variable name `research`
  */
 
+import { umbrellaMembers } from "../lib/umbrella.js";
+
 const STATUSES = ["inbox", "starred", "trash"];
-
-const UMBRELLA_TAGS = {
-  "Big Ten": ["Industriousness"],
-  "Indian Psychology": [
-    "Guna", "guna", "Indian", "indian", "Vedic", "vedic",
-    "Sattva", "sattva", "Pancha", "pancha", "Triguna", "triguna", "Atman", "atman",
-  ],
-  "Experimental Philosophy": [
-    "Philosophy of Mind", "philosophy of mind",
-    "Metaphysics", "metaphysics",
-    "Epistemology", "epistemology",
-    "Philosophy of Language", "philosophy of language",
-    "Philosophy of Religion", "philosophy of religion",
-    "experimental philosophy",
-  ],
-  "Intelligence Quotient": ["Intelligent Quotient", "intelligent quotient", "IQ", "iq"],
-};
-
-function umbrellaMembers(tag) {
-  return [tag, ...(UMBRELLA_TAGS[tag] || [])];
-}
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);

@@ -67,6 +67,7 @@ const TERM_ALIASES = {
   "high sex drive": "High Sex Drive",
   "iq": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
+  "intelligence quotient": "Intelligence Quotient",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",

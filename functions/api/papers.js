@@ -1,7 +1,7 @@
 /**
  * GET /api/papers
  *   ?q=<search text>      full-text search over title/authors/snippet
- *   ?tag=<term>           filter to a single tag (umbrella tags include member tags)
+ *   ?tag=<term>           filter to a single tag
  *   ?status=<s>           filter to inbox | starred | trash
  *   ?limit=50&offset=0    pagination
  *
@@ -10,8 +10,6 @@
  * Binding required on the Pages project:
  *   D1 database  ->  variable name `research`
  */
-
-import { umbrellaMembers } from "../lib/umbrella.js";
 
 const STATUSES = ["inbox", "starred", "trash"];
 
@@ -42,10 +40,8 @@ export async function onRequestGet({ request, env }) {
     }
   }
   if (tag) {
-    const members = umbrellaMembers(tag);
-    const placeholders = members.map(() => "?").join(", ");
-    where.push(`p.id IN (SELECT paper_id FROM tags WHERE tag IN (${placeholders}))`);
-    binds.push(...members);
+    where.push(`p.id IN (SELECT paper_id FROM tags WHERE tag = ?)`);
+    binds.push(tag);
   }
   if (status && STATUSES.includes(status)) {
     where.push(`p.status = ?`);

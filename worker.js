@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v23 — Intelligence Quotient umbrella (2026-06-16)";
+const VERSION = "worker v24 — canonical tags enforced on write (2026-06-16)";
 
 const KNOWN_TERMS = [
   // Big Ten aspect alerts — before overlapping short terms
@@ -106,10 +106,34 @@ const TERM_ALIASES = {
   "disagreeableness and agreeableness": "Big Ten",
   "enthusiasm and assertiveness": "Big Ten",
   "compassion and politeness": "Big Ten",
+  "industriousness": "Big Ten",
 };
 
+// Sidebar section tags — canonical() normalizes case variants to these.
+const CANONICAL_TAGS = [
+  "Big Five",
+  "Big Ten",
+  "MBTI",
+  "HEXACO",
+  "Dark Triad",
+  "Indian Psychology",
+  "Experimental Philosophy",
+  "Followed Authors",
+  "Intelligence Quotient",
+  "ADHD and Nicotine",
+  "High Sex Drive",
+  "Bisexuality",
+  "Sociosexuality",
+];
+
 function canonical(term) {
-  return TERM_ALIASES[term.toLowerCase().trim()] || term;
+  const key = (term || "").toLowerCase().trim();
+  if (!key) return "untagged";
+  if (TERM_ALIASES[key]) return TERM_ALIASES[key];
+  for (const t of CANONICAL_TAGS) {
+    if (t.toLowerCase() === key) return t;
+  }
+  return term.trim();
 }
 
 // Extract the bare email from a From header like
@@ -489,10 +513,11 @@ async function upsertPaper(db, p, tag, subject) {
 
   if (!row) return;
 
+  const storedTag = canonical(tag);
   await db
     .prepare(`INSERT INTO tags (paper_id, tag) VALUES (?, ?)
               ON CONFLICT(paper_id, tag) DO NOTHING`)
-    .bind(row.id, tag)
+    .bind(row.id, storedTag)
     .run();
 }
 

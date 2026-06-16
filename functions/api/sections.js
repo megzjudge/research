@@ -21,6 +21,7 @@ const UMBRELLA_TAGS = {
     "Philosophy of Religion", "philosophy of religion",
     "experimental philosophy",
   ],
+  "Intelligence Quotient": ["Intelligent Quotient", "intelligent quotient", "IQ", "iq"],
 };
 
 function umbrellaMembers(canonical) {

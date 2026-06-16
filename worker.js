@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v19 — Big Ten umbrella, rail groups, trash search (2026-06-16)";
+const VERSION = "worker v20 — Indian Psychology + Experimental Philosophy umbrellas (2026-06-16)";
 
 const KNOWN_TERMS = [
   // Big Ten aspect alerts — before overlapping short terms
@@ -55,7 +55,7 @@ const KNOWN_TERMS = [
   "Big Five", "Big 5", "MBTI", "Myers-Briggs", "Myers Briggs",
   "HEXACO", "Sociosexuality",
   "Bisexual women", "Bisexuality", "Bisexual",
-  "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Religion",
+  "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Language", "Philosophy of Religion",
   "Rupert Sheldrake", "Emil Kirkegaard",
   "Intelligent Quotient", "IQ",
   "adhd AND nicotine", "ADHD and Nicotine",
@@ -90,6 +90,7 @@ const TERM_ALIASES = {
   "philosophy of mind": "Experimental Philosophy",
   "metaphysics": "Experimental Philosophy",
   "epistemology": "Experimental Philosophy",
+  "philosophy of language": "Experimental Philosophy",
   "philosophy of religion": "Experimental Philosophy",
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",

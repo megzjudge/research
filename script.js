@@ -22,7 +22,7 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Deviancy",
-    tags: ["Dark Triad", "ADHD and Nicotine", "Bisexuality", "Sociosexuality"],
+    tags: ["Dark Triad", "ADHD and Nicotine", "Bisexuality", "Sociosexuality", "High Sex Drive"],
   },
   {
     banner: "Specifics",
@@ -64,6 +64,7 @@ const TERM_ALIASES = {
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",
   "adhd and nicotine": "ADHD and Nicotine",
+  "high sex drive": "High Sex Drive",
   "iq": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
   "industriousness and orderliness": "Big Ten",

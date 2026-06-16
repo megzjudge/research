@@ -75,10 +75,33 @@ const TERM_ALIASES = {
   "disagreeableness and agreeableness": "Big Ten",
   "enthusiasm and assertiveness": "Big Ten",
   "compassion and politeness": "Big Ten",
+  "industriousness": "Big Ten",
 };
 
+const CANONICAL_TAGS = [
+  "Big Five",
+  "Big Ten",
+  "MBTI",
+  "HEXACO",
+  "Dark Triad",
+  "Indian Psychology",
+  "Experimental Philosophy",
+  "Followed Authors",
+  "Intelligence Quotient",
+  "ADHD and Nicotine",
+  "High Sex Drive",
+  "Bisexuality",
+  "Sociosexuality",
+];
+
 function canonical(tag) {
-  return TERM_ALIASES[(tag || "").toLowerCase().trim()] || tag;
+  const key = (tag || "").toLowerCase().trim();
+  if (!key) return tag;
+  if (TERM_ALIASES[key]) return TERM_ALIASES[key];
+  for (const t of CANONICAL_TAGS) {
+    if (t.toLowerCase() === key) return t;
+  }
+  return tag;
 }
 
 async function postWrite(url, payload) {

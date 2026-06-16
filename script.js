@@ -324,14 +324,15 @@ function cardHtml(p) {
   </article>`;
 }
 
-function sciHubUrl(link) {
-  if (!link) return "";
-  return SCIHUB_MIRROR + link;
+function sciHubUrl(title) {
+  if (!title) return "";
+  const encoded = encodeURIComponent(title.trim()).replace(/%20/g, "+");
+  return `${SCIHUB_MIRROR}match/${encoded}`;
 }
 
 function cardActs(p) {
-  const sciBtn = p.link
-    ? `<a class="scihubbtn" href="${esc(sciHubUrl(p.link))}" target="_blank" rel="noopener noreferrer" title="Sci-Hub" aria-label="Sci-Hub">SH</a>`
+  const sciBtn = p.title
+    ? `<a class="scihubbtn" href="${esc(sciHubUrl(p.title))}" target="_blank" rel="noopener noreferrer" title="Sci-Hub" aria-label="Sci-Hub">SH</a>`
     : "";
   if (!p.id) return sciBtn ? `<span class="cardacts">${sciBtn}</span>` : "";
   const b = (status, glyph, label) =>

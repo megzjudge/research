@@ -9,6 +9,18 @@
 
 const UMBRELLA_TAGS = {
   "Big Ten": ["Industriousness"],
+  "Indian Psychology": [
+    "Guna", "guna", "Indian", "indian", "Vedic", "vedic",
+    "Sattva", "sattva", "Pancha", "pancha", "Triguna", "triguna", "Atman", "atman",
+  ],
+  "Experimental Philosophy": [
+    "Philosophy of Mind", "philosophy of mind",
+    "Metaphysics", "metaphysics",
+    "Epistemology", "epistemology",
+    "Philosophy of Language", "philosophy of language",
+    "Philosophy of Religion", "philosophy of religion",
+    "experimental philosophy",
+  ],
 };
 
 function umbrellaMembers(canonical) {

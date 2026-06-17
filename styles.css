@@ -32,6 +32,9 @@
 .content::-webkit-scrollbar,
 .tagmenu::-webkit-scrollbar {
   width: var(--scrollbar-size);
+}
+.content::-webkit-scrollbar,
+.tagmenu::-webkit-scrollbar {
   height: var(--scrollbar-size);
 }
 .rail::-webkit-scrollbar-track,
@@ -96,6 +99,8 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
   top: 0;
   align-self: stretch;
   height: 100vh;
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -125,7 +130,7 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .brand { font-family: var(--serif); font-weight: 600; font-size: 23px; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 8px; }
 .brand .dot { color: var(--accent); }
 .tagline { font-size: 13px; line-height: 1.45; color: var(--muted); margin: 0 0 28px; }
-.railnav { list-style: none; margin: 0; padding: 0; width: 100%; flex: 1; min-height: 0; overflow-y: auto; }
+.railnav { list-style: none; margin: 0; padding: 0; width: 100%; flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; }
 @media (min-width: 861px) {
   .railnav { margin-bottom: 16px; }
 }
@@ -137,6 +142,7 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
   justify-content: space-between;
   align-items: flex-start;
   gap: 10px;
+  min-width: 0;
   text-decoration: none;
   font-family: var(--mono);
   font-size: 11.5px;
@@ -146,6 +152,10 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
   margin: 0 -8px;
   border-radius: 4px;
   border-bottom: 1px solid transparent;
+}
+.railnav li a span:not(.c) {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .railnav li a:hover,
 .railnav li a.active {

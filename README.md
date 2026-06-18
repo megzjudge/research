@@ -145,6 +145,9 @@ To change it in the future, click the Edit button, then click Rotate, and put in
 2. Click the Pages you created in Step 8.
 3. Click **Settings**, scroll down to **Variables and secrets** then click **Add**.
 4. Change Type to Secret, make the variable name AUTH then add in any password you want.
+> 5. If you want to upload screenshots from your emails to an email - on the very top right of your github, click the icon, then click Settings.
+> Scroll down to Developer settings > Personal access tokens > Fine-grained tokens > Generate new token > (name it whatever) > no expiration > pick your repository or leave it as the default > click add permissions (Contents, change it to read and write) > Generate token > Copy token.
+> Go to Cloudflare, **Variables and secrets** then click **Add** in Pages from Step 8 (AUTH location), and add the secret GITHUB_TOKEN.
 
 Now on your website, when you click "add" under contructs, you can put in your saved password. Like FORWARDED_EMAILS this is unable to be read by anyone, not even you, as you will need to click Rotate to reset the password.
 

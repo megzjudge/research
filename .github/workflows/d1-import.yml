@@ -10,7 +10,7 @@ on:
         type: choice
         options:
           - all
-          - d1_title_case.sql
+          - d1_backfill_metadata_full.sql
 
 jobs:
   import:

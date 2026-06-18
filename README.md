@@ -167,6 +167,7 @@ your-repo/                          # ← syncs to GitHub
     ├── tags.js                     # GET tag list + counts
     └── sections.js                 # GET sections+papers · POST curate (add/pin/hide)
 ```
+Wrangler.toml and .github/workflows files are not neccessary - they can be used for bulk imports with tweaks.
 
 > Only the site auto-deploys on push. The Email Worker is deployed independently,
 > and the schema is a manual one-off — neither belongs in the synced repo.

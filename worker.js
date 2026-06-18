@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v24 — canonical tags enforced on write (2026-06-16)";
+const VERSION = "worker v25 — all-caps titles normalized to title case on intake (2026-06-19)";
 
 const KNOWN_TERMS = [
   // Big Ten aspect alerts — before overlapping short terms
@@ -125,6 +125,58 @@ const CANONICAL_TAGS = [
   "Bisexuality",
   "Sociosexuality",
 ];
+
+// Title-case ALL CAPS Scholar titles on intake (matches d1_title_case.sql logic).
+const TITLE_ACRONYMS = new Set([
+  "mbti", "adhd", "iq", "hexaco", "llm", "llms", "ai", "ml", "usa", "uk", "eu",
+  "pdf", "doi", "gpt", "nlp", "hci", "ux", "vr", "ar", "iot", "sme", "ceo",
+  "phd", "covid", "hiv", "dsm", "neo", "pi", "r", "sh", "jcdr", "smpn",
+]);
+const TITLE_SMALL = new Set([
+  "a", "an", "and", "as", "at", "but", "by", "for", "in", "nor", "of", "on",
+  "or", "the", "to", "vs", "via", "with", "from",
+]);
+
+function capTitleCore(core, idx, total) {
+  if (!core) return core;
+  for (const sep of ["\u2013", "\u2014", "-"]) {
+    if (core.includes(sep)) {
+      const parts = core.split(sep);
+      return parts.map((p, i) => capTitleCore(p, i, parts.length)).join(sep);
+    }
+  }
+  const low = core.toLowerCase();
+  if (TITLE_ACRONYMS.has(low)) return core.toUpperCase();
+  if (idx > 0 && idx < total - 1 && TITLE_SMALL.has(low)) return low;
+  if (core.length === 1) return core.toUpperCase();
+  return core[0].toUpperCase() + core.slice(1).toLowerCase();
+}
+
+function titleCaseFromAllCaps(title) {
+  const s = (title || "").trim().toLowerCase();
+  if (!s) return title;
+  const parts = s.split(/(\s+)/);
+  const words = parts.filter((p) => p && !/^\s+$/.test(p));
+  let wi = 0;
+  const out = [];
+  for (const p of parts) {
+    if (/^\s+$/.test(p)) { out.push(p); continue; }
+    const m = p.match(/^([\"'(\[]*)(.*?)([\"')\].,:;!?™]*)$/);
+    if (!m) { out.push(capTitleCore(p, wi, words.length)); wi++; continue; }
+    const [, pre, core, suf] = m;
+    if (core) { out.push(pre + capTitleCore(core, wi, words.length) + suf); wi++; }
+    else out.push(p);
+  }
+  return out.join("");
+}
+
+function normalizeIntakeTitle(title) {
+  const t = (title || "").trim();
+  if (!t) return t;
+  const letters = t.replace(/[^A-Za-z]/g, "");
+  if (!letters || letters !== letters.toUpperCase()) return t;
+  return titleCaseFromAllCaps(t);
+}
 
 function canonical(term) {
   const key = (term || "").toLowerCase().trim();
@@ -471,6 +523,7 @@ function titleKey(t) {
 }
 
 async function upsertPaper(db, p, tag, subject) {
+  const title = normalizeIntakeTitle(p.title);
   // 1 · Primary de-dup on the (normalized) link.
   await db
     .prepare(
@@ -478,7 +531,7 @@ async function upsertPaper(db, p, tag, subject) {
        VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(link) DO NOTHING`
     )
-    .bind(p.title, p.authors, p.snippet, p.link, p.venue, subject)
+    .bind(title, p.authors, p.snippet, p.link, p.venue, subject)
     .run();
 
   let row = await db
@@ -490,7 +543,7 @@ async function upsertPaper(db, p, tag, subject) {
   //     genuinely different URL (cross-host), which link-dedup can't see.
   //     Only for distinctive (long enough) titles, to avoid merging two
   //     different papers that happen to share a short generic title.
-  const key = titleKey(p.title);
+  const key = titleKey(title);
   if (key.length >= TITLE_DEDUP_MIN_LEN) {
     const existing = (await db
       .prepare(`SELECT id, title, link FROM papers ORDER BY id ASC`)

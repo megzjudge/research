@@ -7,26 +7,91 @@
  * Binding required on the Pages project: D1 -> variable `research`
  */
 
-/**
- * GET  /api/sections           -> starred papers + ordered sections with papers
- *   ?per=24  max papers per section (default 6, cap 24)
- *
- * POST /api/sections           -> create or update curation for one tag
- *
- * Binding required on the Pages project: D1 -> variable `research`
- */
+const TERM_ALIASES = {
+  "big 5": "Big Five",
+  "big five": "Big Five",
+  "myers-briggs": "MBTI",
+  "myers briggs": "MBTI",
+  "dark tetrad": "Dark Triad",
+  "machiavellianism": "Dark Triad",
+  "bisexual": "Bisexuality",
+  "bisexual women": "Bisexuality",
+  "sattva and rajas and tamas": "Indian Psychology",
+  "indian and psychology and personality": "Indian Psychology",
+  "triguna and personality": "Indian Psychology",
+  "vedic and psychology": "Indian Psychology",
+  "pancha and kosha": "Indian Psychology",
+  "pancha kosha": "Indian Psychology",
+  "guna and personality": "Indian Psychology",
+  "atman and psychology": "Indian Psychology",
+  "triguna": "Indian Psychology",
+  "pancha": "Indian Psychology",
+  "guna": "Indian Psychology",
+  "vedic": "Indian Psychology",
+  "sattva": "Indian Psychology",
+  "atman": "Indian Psychology",
+  "indian": "Indian Psychology",
+  "experimental philosophy": "Experimental Philosophy",
+  "philosophy of mind": "Experimental Philosophy",
+  "metaphysics": "Experimental Philosophy",
+  "epistemology": "Experimental Philosophy",
+  "philosophy of language": "Experimental Philosophy",
+  "philosophy of religion": "Experimental Philosophy",
+  "rupert sheldrake": "Followed Authors",
+  "emil kirkegaard": "Followed Authors",
+  "adhd and nicotine": "ADHD and Nicotine",
+  "high sex drive": "High Sex Drive",
+  "iq": "Intelligence Quotient",
+  "intelligent quotient": "Intelligence Quotient",
+  "intelligence quotient": "Intelligence Quotient",
+  "industriousness and orderliness": "Big Ten",
+  "intellect and aesthetics": "Big Ten",
+  "intellect and openness": "Big Ten",
+  "withdrawal and volatility": "Big Ten",
+  "disagreeableness and agreeableness": "Big Ten",
+  "enthusiasm and assertiveness": "Big Ten",
+  "compassion and politeness": "Big Ten",
+  "industriousness": "Big Ten",
+};
+
+const CANONICAL_TAGS = [
+  "Big Five", "Big Ten", "MBTI", "HEXACO", "Dark Triad", "Indian Psychology",
+  "Experimental Philosophy", "Followed Authors", "Intelligence Quotient",
+  "ADHD and Nicotine", "High Sex Drive", "Bisexuality", "Sociosexuality",
+];
+
+function canonicalTag(tag) {
+  const key = (tag || "").toLowerCase().trim();
+  if (!key) return tag;
+  if (TERM_ALIASES[key]) return TERM_ALIASES[key];
+  for (const t of CANONICAL_TAGS) {
+    if (t.toLowerCase() === key) return t;
+  }
+  return tag;
+}
+
+function curationFor(tag, cur, curRows) {
+  if (cur.has(tag)) return cur.get(tag);
+  for (const r of curRows) {
+    if (canonicalTag(r.tag) === tag) return r;
+  }
+  return {};
+}
+
+function rawTagsFor(sectionTag, dbTags) {
+  return [...dbTags].filter((t) => canonicalTag(t) === sectionTag);
+}
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const per = Math.min(parseInt(url.searchParams.get("per") || "6", 10), 24);
 
   try {
-    const tagRows = (await env.research
+    const pairRows = (await env.research
       .prepare(
-        `SELECT t.tag, COUNT(*) AS count
+        `SELECT DISTINCT t.tag, t.paper_id
          FROM tags t JOIN papers p ON p.id = t.paper_id
-         WHERE p.status = 'inbox'
-         GROUP BY t.tag`
+         WHERE p.status = 'inbox'`
       )
       .all()).results || [];
 
@@ -35,15 +100,26 @@ export async function onRequestGet({ request, env }) {
       .all()).results || [];
 
     const cur = new Map(curRows.map((r) => [r.tag, r]));
-    const countOf = new Map(tagRows.map((r) => [r.tag, r.count]));
+    const dbTags = new Set(pairRows.map((r) => r.tag));
+    const papersByCanon = new Map();
+
+    for (const row of pairRows) {
+      const canon = canonicalTag(row.tag);
+      if (!papersByCanon.has(canon)) papersByCanon.set(canon, new Set());
+      papersByCanon.get(canon).add(row.paper_id);
+    }
+
+    const countOf = new Map(
+      [...papersByCanon.entries()].map(([tag, ids]) => [tag, ids.size])
+    );
 
     const allTags = new Set([
-      ...tagRows.map((r) => r.tag),
-      ...curRows.map((r) => r.tag),
+      ...papersByCanon.keys(),
+      ...curRows.map((r) => canonicalTag(r.tag)),
     ]);
 
     let sections = [...allTags].map((tag) => {
-      const c = cur.get(tag) || {};
+      const c = curationFor(tag, cur, curRows);
       return {
         tag,
         label: c.label || tag,
@@ -63,17 +139,20 @@ export async function onRequestGet({ request, env }) {
 
     for (const s of sections) {
       if (s.hidden || s.count === 0) { s.papers = []; continue; }
+      const tags = rawTagsFor(s.tag, dbTags);
+      if (!tags.length) { s.papers = []; continue; }
+      const placeholders = tags.map(() => "?").join(", ");
       const { results } = await env.research
         .prepare(
           `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
                   (SELECT group_concat(tag, '|') FROM tags WHERE paper_id = p.id) AS tags
            FROM papers p
            WHERE p.status = 'inbox'
-             AND p.id IN (SELECT paper_id FROM tags WHERE tag = ?)
+             AND p.id IN (SELECT paper_id FROM tags WHERE tag IN (${placeholders}))
            ORDER BY p.first_seen DESC
            LIMIT ?`
         )
-        .bind(s.tag, per)
+        .bind(...tags, per)
         .all();
       s.papers = (results || []).map((r) => ({ ...r, tags: r.tags ? r.tags.split("|") : [] }));
     }

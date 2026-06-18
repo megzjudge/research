@@ -10,7 +10,7 @@ on:
         type: choice
         options:
           - all
-          - d1_merge_duplicates.sql
+          - d1_title_case.sql
 
 jobs:
   import:

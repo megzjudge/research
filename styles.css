@@ -162,9 +162,11 @@ footer.page-footer { margin-top: 20px; padding: 18px 30px 22px; text-align: cent
 .cardx-compact .cardfoot { margin-top: 8px; justify-content: flex-end; }
 .cardx-compact .cardacts button { font-size: 12px; }
 
-.cardshot { display: block; margin-top: 8px; padding: 0; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--paper); cursor: zoom-in; overflow: hidden; width: 52px; height: 36px; flex-shrink: 0; }
+.cardshots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cardshot { display: block; margin-top: 0; padding: 0; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--paper); cursor: zoom-in; overflow: hidden; width: 52px; height: 36px; flex-shrink: 0; }
 .cardshot img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.cardx-compact .cardshot { margin-top: 6px; width: 44px; height: 30px; }
+.cardx-compact .cardshots { margin-top: 6px; gap: 5px; }
+.cardx-compact .cardshot { width: 44px; height: 30px; }
 
 .cardacts .uploadbtn { font-family: var(--mono); font-size: 14px; font-weight: 600; }
 .cardacts .readbtn { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.02em; transform: translateY(1px); }
@@ -177,3 +179,7 @@ footer.page-footer { margin-top: 20px; padding: 18px 30px 22px; text-align: cent
 .lightbox-close { position: absolute; top: 16px; right: 20px; font-size: 28px; line-height: 1; color: var(--ink); background: transparent; border: none; cursor: pointer; padding: 4px 8px; }
 .lightbox-close:hover { color: var(--accent); }
 body.lightbox-open { overflow: hidden; }
+
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 110; font-family: var(--mono); font-size: 12px; color: var(--paper); background: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 10px 16px; box-shadow: 0 8px 28px rgba(0,0,0,.35); pointer-events: none; }
+.toast.toast-err { background: #3d2028; border-color: #c96; color: var(--ink); }
+.toast[hidden] { display: none; }

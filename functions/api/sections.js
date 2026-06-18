@@ -145,6 +145,7 @@ export async function onRequestGet({ request, env }) {
       const { results } = await env.research
         .prepare(
           `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
+                  p.screenshot, p.read_at, p.starred_at,
                   (SELECT group_concat(tag, '|') FROM tags WHERE paper_id = p.id) AS tags
            FROM papers p
            WHERE p.status = 'inbox'
@@ -152,7 +153,7 @@ export async function onRequestGet({ request, env }) {
            ORDER BY p.first_seen DESC
            LIMIT ?`
         )
-        .bind(...tags, per)
+        .bind(...tags, per * 4)
         .all();
       s.papers = (results || []).map((r) => ({ ...r, tags: r.tags ? r.tags.split("|") : [] }));
     }
@@ -160,10 +161,11 @@ export async function onRequestGet({ request, env }) {
     const starredRows = (await env.research
       .prepare(
         `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
+                p.screenshot, p.read_at, p.starred_at,
                 (SELECT group_concat(tag, '|') FROM tags WHERE paper_id = p.id) AS tags
          FROM papers p
-         WHERE p.status = 'starred'
-         ORDER BY p.first_seen DESC
+         WHERE p.status != 'trash' AND p.starred_at IS NOT NULL
+         ORDER BY p.starred_at DESC
          LIMIT 100`
       )
       .all()).results || [];

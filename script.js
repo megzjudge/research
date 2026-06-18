@@ -9,6 +9,8 @@ const elNew        = document.getElementById("newtag");
 const elAdd        = document.getElementById("addbtn");
 const elTrashLink  = document.getElementById("trashlink");
 const elTrashCount = document.getElementById("trashcount");
+const elLightbox   = document.getElementById("lightbox");
+const elLightboxImg = document.getElementById("lightbox-img");
 
 const pageOf = new Map();
 let view   = "sections";
@@ -198,11 +200,11 @@ async function loadSections() {
   elStatus.textContent = "loading…";
   try {
     const r = await fetch(`/api/sections?per=${FETCH}`);
-    const { starred = [], sections = [], trash_count = 0 } = await r.json();
+    const { sections = [], trash_count = 0 } = await r.json();
     allTags = sections.map((s) => s.tag).sort((a, b) => a.localeCompare(b));
-    renderRail(sections, starred.length, trash_count);
-    renderAll(starred, sections);
-    elStatus.textContent = (sections.length || starred.length) ? "" : "No constructs yet — add one on the left.";
+    renderRail(sections, trash_count);
+    renderAll(sections);
+    elStatus.textContent = sections.length ? "" : "No constructs yet — add one on the left.";
   } catch (e) {
     elStatus.textContent = "Couldn't reach the database.";
   }
@@ -229,17 +231,11 @@ function sectionsInRailOrder(sections) {
   return out;
 }
 
-function renderRail(sections, starredCount, trashCount) {
+function renderRail(sections, trashCount) {
   elRail.innerHTML = "";
   const byTag = new Map(sections.map((s) => [s.tag, s]));
 
   updateTrashLink(trashCount);
-
-  if (starredCount) {
-    const li = document.createElement("li");
-    li.innerHTML = `<a href="#sec-starred"><span>★ starred</span><span class="c">${starredCount}</span></a>`;
-    elRail.appendChild(li);
-  }
 
   for (const group of RAIL_GROUPS) {
     const liBanner = document.createElement("li");
@@ -265,26 +261,29 @@ function renderRail(sections, starredCount, trashCount) {
   }
 }
 
-function renderAll(starred, sections) {
-  elSections.innerHTML = "";
+function isStarred(p) { return !!(p.starred_at && String(p.starred_at).trim()); }
+function isRead(p) { return !!(p.read_at && String(p.read_at).trim()); }
+function isCompact(p) { return isStarred(p) || isRead(p); }
 
-  if (starred.length) {
-    const sec = document.createElement("section");
-    sec.className = "section starred-sec";
-    sec.id = "sec-starred";
-    sec.innerHTML = `
-      <div class="sechead">
-        <h2><span class="star">★</span> Starred</h2>
-        <span class="count">${starred.length}</span>
-      </div>
-      <div class="carousel">
-        <button class="navbtn prev" aria-label="previous papers"></button>
-        <div class="grid grid-page"></div>
-        <button class="navbtn next" aria-label="more papers"></button>
-      </div>`;
-    elSections.appendChild(sec);
-    initCarousel(sec, { tag: "__starred", papers: starred });
+function compactSort(a, b) {
+  const as = isStarred(a), bs = isStarred(b);
+  if (as !== bs) return as ? -1 : 1;
+  if (as) return String(b.starred_at).localeCompare(String(a.starred_at));
+  return String(b.read_at || "").localeCompare(String(a.read_at || ""));
+}
+
+function splitPapers(papers) {
+  const main = [], compact = [];
+  for (const p of papers || []) {
+    if (isCompact(p)) compact.push(p);
+    else main.push(p);
   }
+  compact.sort(compactSort);
+  return { main, compact };
+}
+
+function renderAll(sections) {
+  elSections.innerHTML = "";
 
   for (const s of sectionsInRailOrder(sections)) {
     if (s.hidden) continue;
@@ -294,10 +293,15 @@ function renderAll(starred, sections) {
 
     const body = s.count === 0
       ? `<p class="sec-empty">No papers yet — waiting on the first alert.</p>`
-      : `<div class="carousel">
-           <button class="navbtn prev" aria-label="previous papers"></button>
-           <div class="grid grid-page"></div>
-           <button class="navbtn next" aria-label="more papers"></button>
+      : `<div class="secbody">
+           <div class="carousel carousel-main">
+             <button class="navbtn prev" aria-label="previous papers"></button>
+             <div class="grid grid-page"></div>
+             <button class="navbtn next" aria-label="more papers"></button>
+           </div>
+           <div class="compact-wrap" hidden>
+             <div class="grid compact-grid"></div>
+           </div>
          </div>` +
         (s.count > FETCH ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "");
 
@@ -307,35 +311,61 @@ function renderAll(starred, sections) {
         <span class="count">${s.count}</span>
       </div>${body}`;
     elSections.appendChild(sec);
-    if (s.count > 0) initCarousel(sec, s);
+    if (s.count > 0) initSection(sec, s);
   }
   wireSectionActions();
   elSections.querySelectorAll(".section").forEach(el => railObserver.observe(el));
 }
 
-function initCarousel(sec, s) {
+function initSection(sec, s) {
+  const { main, compact } = splitPapers(s.papers || []);
+  initCarousel(sec.querySelector(".carousel-main"), { tag: s.tag, papers: main });
+  renderCompactRow(sec.querySelector(".compact-wrap"), sec.querySelector(".compact-grid"), compact);
+  sec._reshow = () => {
+    const split = splitPapers(s.papers || []);
+    initCarousel(sec.querySelector(".carousel-main"), { tag: s.tag, papers: split.main });
+    renderCompactRow(sec.querySelector(".compact-wrap"), sec.querySelector(".compact-grid"), split.compact);
+  };
+}
+
+function renderCompactRow(wrap, grid, papers) {
+  if (!wrap || !grid) return;
+  if (!papers.length) {
+    wrap.hidden = true;
+    grid.innerHTML = "";
+    return;
+  }
+  wrap.hidden = false;
+  grid.innerHTML = papers.map((p) => cardHtml(p, true)).join("");
+}
+
+function initCarousel(carousel, s) {
+  if (!carousel) return;
   const papers = s.papers || [];
-  const grid = sec.querySelector(".grid-page");
-  const prev = sec.querySelector(".navbtn.prev");
-  const next = sec.querySelector(".navbtn.next");
+  const grid = carousel.querySelector(".grid-page");
+  const prev = carousel.querySelector(".navbtn.prev");
+  const next = carousel.querySelector(".navbtn.next");
+  if (!grid) return;
 
   function show(page) {
     const per = pageSize();
     const maxPage = Math.max(0, Math.ceil(papers.length / per) - 1);
     page = Math.min(Math.max(page, 0), maxPage);
     pageOf.set(s.tag, page);
-    grid.innerHTML = papers.slice(page * per, page * per + per).map(cardHtml).join("");
-    const hideArrows = papers.length <= per;
-    prev.style.display = next.style.display = hideArrows ? "none" : "";
-    prev.disabled = page <= 0;
-    next.disabled = page >= maxPage;
+    grid.innerHTML = papers.slice(page * per, page * per + per).map((p) => cardHtml(p, false)).join("");
+    if (prev && next) {
+      const hideArrows = papers.length <= per;
+      prev.style.display = next.style.display = hideArrows ? "none" : "";
+      prev.disabled = page <= 0;
+      next.disabled = page >= maxPage;
+    }
   }
 
-  prev.onclick = () => show((pageOf.get(s.tag) || 0) - 1);
-  next.onclick = () => show((pageOf.get(s.tag) || 0) + 1);
+  if (prev) prev.onclick = () => show((pageOf.get(s.tag) || 0) - 1);
+  if (next) next.onclick = () => show((pageOf.get(s.tag) || 0) + 1);
   show(pageOf.get(s.tag) || 0);
 
-  sec._reshow = () => show(pageOf.get(s.tag) || 0);
+  carousel._reshow = () => show(pageOf.get(s.tag) || 0);
 }
 
 let _rz;
@@ -346,7 +376,14 @@ window.addEventListener("resize", () => {
   }, 150);
 });
 
-function cardHtml(p) {
+function shotHtml(p) {
+  if (!p.screenshot) return "";
+  return `<button type="button" class="cardshot" data-lightbox="${esc(p.screenshot)}" title="view screenshot" aria-label="view screenshot">
+    <img src="${esc(p.screenshot)}" alt="" loading="lazy" />
+  </button>`;
+}
+
+function cardHtml(p, compact) {
   const canonTags = [...new Set((p.tags || []).map(t => canonical(t)))];
   const chips = canonTags.map(c =>
     `<button class="tagchip" data-tag="${esc(c)}">${prettyLabel(c)}</button>`
@@ -354,7 +391,7 @@ function cardHtml(p) {
 
   const has = new Set(canonTags);
   const addable = allTags.filter(t => !has.has(t));
-  const plus = (p.id && addable.length)
+  const plus = (!compact && p.id && addable.length)
     ? `<span class="addtag-wrap">
          <button class="tagchip tagadd" data-addtag="${p.id}" title="add to a section">+</button>
          <span class="tagmenu" hidden>${addable.map(t =>
@@ -362,13 +399,16 @@ function cardHtml(p) {
          ).join("")}</span>
        </span>`
     : "";
-  const tags = (chips || plus) ? `<span class="cardtags">${chips}${plus}</span>` : "";
-  return `<article class="cardx">
+  const tags = (!compact && (chips || plus)) ? `<span class="cardtags">${chips}${plus}</span>` : "";
+  const cls = compact ? "cardx cardx-compact" : "cardx";
+  const shot = shotHtml(p);
+  return `<article class="${cls}">
     <a class="ttl" href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.title)}</a>
-    ${p.authors ? `<p class="auth">${esc(p.authors)}</p>` : ""}
-    ${p.snippet ? `<p class="snip">${esc(p.snippet)}</p>` : ""}
+    ${compact ? "" : (p.authors ? `<p class="auth">${esc(p.authors)}</p>` : "")}
+    ${compact ? "" : (p.snippet ? `<p class="snip">${esc(p.snippet)}</p>` : "")}
+    ${shot}
     <span class="cardfoot">
-      <span class="when">${ago(p.first_seen)}</span>
+      ${compact ? "" : `<span class="when">${ago(p.first_seen)}</span>`}
       ${cardActs(p)}
     </span>
     ${tags}
@@ -386,17 +426,55 @@ function cardActs(p) {
     ? `<a class="scihubbtn" href="${esc(sciHubUrl(p.title))}" target="_blank" rel="noopener noreferrer" title="Sci-Hub" aria-label="Sci-Hub">SH</a>`
     : "";
   if (!p.id) return sciBtn ? `<span class="cardacts">${sciBtn}</span>` : "";
-  const b = (status, glyph, label) =>
-    `<button data-pstatus="${status}" data-id="${p.id}" title="${label}" aria-label="${label}">${glyph}</button>`;
+  if (p.status === "trash") {
+    return `<span class="cardacts">${sciBtn}
+      <button data-pstatus="inbox" data-id="${p.id}" title="restore" aria-label="restore">↩</button>
+      <button class="starbtn" data-star="${p.id}" data-on="1" title="star" aria-label="star">☆</button>
+    </span>`;
+  }
   const linkBtn = `<button class="urlbtn" data-editurl="${p.id}" data-link="${esc(p.link)}" title="replace link" aria-label="replace link">↗</button>`;
-  let triage;
-  if (p.status === "starred")    triage = b("trash","✕","trash") + b("inbox","★","unstar");
-  else if (p.status === "trash") triage = b("inbox","↩","restore") + b("starred","☆","star");
-  else                           triage = b("trash","✕","trash") + b("starred","☆","star");
-  return `<span class="cardacts">${sciBtn}${linkBtn}${triage}</span>`;
+  const uploadBtn = `<button class="uploadbtn" data-upload="${p.id}" title="upload screenshot" aria-label="upload screenshot">+</button>`;
+  const trashBtn = `<button data-pstatus="trash" data-id="${p.id}" title="trash" aria-label="trash">✕</button>`;
+  const starBtn = isStarred(p)
+    ? `<button class="starbtn on" data-star="${p.id}" data-on="0" title="unstar" aria-label="unstar">★</button>`
+    : `<button class="starbtn" data-star="${p.id}" data-on="1" title="star" aria-label="star">☆</button>`;
+  const readBtn = isRead(p)
+    ? `<button class="readbtn on" data-read="${p.id}" data-on="0" title="mark unread" aria-label="mark unread">R</button>`
+    : `<button class="readbtn" data-read="${p.id}" data-on="1" title="read" aria-label="read">R</button>`;
+  return `<span class="cardacts">${sciBtn}${linkBtn}${uploadBtn}${trashBtn}${starBtn}${readBtn}</span>`;
 }
 
 elSections.addEventListener("click", async (e) => {
+  const shot = e.target.closest("[data-lightbox]");
+  if (shot) {
+    openLightbox(shot.getAttribute("data-lightbox"));
+    return;
+  }
+
+  const uploadBtn = e.target.closest("[data-upload]");
+  if (uploadBtn) {
+    pickScreenshot(+uploadBtn.getAttribute("data-upload"));
+    return;
+  }
+
+  const starBtn = e.target.closest("[data-star]");
+  if (starBtn) {
+    starBtn.disabled = true;
+    const on = starBtn.getAttribute("data-on") === "1";
+    await postWrite("/api/papers", { action: "star", id: +starBtn.getAttribute("data-star"), on });
+    refresh();
+    return;
+  }
+
+  const readBtn = e.target.closest("[data-read]");
+  if (readBtn) {
+    readBtn.disabled = true;
+    const on = readBtn.getAttribute("data-on") === "1";
+    await postWrite("/api/papers", { action: "read", id: +readBtn.getAttribute("data-read"), on });
+    refresh();
+    return;
+  }
+
   const urlBtn = e.target.closest("[data-editurl]");
   if (urlBtn) {
     const cur  = urlBtn.getAttribute("data-link") || "";
@@ -447,6 +525,55 @@ elSections.addEventListener("click", async (e) => {
   refresh();
 });
 
+function openLightbox(src) {
+  if (!elLightbox || !elLightboxImg || !src) return;
+  elLightboxImg.src = src;
+  elLightbox.hidden = false;
+  document.body.classList.add("lightbox-open");
+}
+
+function closeLightbox() {
+  if (!elLightbox || !elLightboxImg) return;
+  elLightbox.hidden = true;
+  elLightboxImg.removeAttribute("src");
+  document.body.classList.remove("lightbox-open");
+}
+
+elLightbox?.addEventListener("click", (e) => {
+  if (e.target === elLightbox || e.target.closest(".lightbox-close")) closeLightbox();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeLightbox();
+});
+
+async function pickScreenshot(paperId) {
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = "image/jpeg,image/png,image/webp,image/gif";
+  inp.onchange = async () => {
+    const file = inp.files && inp.files[0];
+    if (!file) return;
+    if (authPw === null) authPw = window.prompt("Password:") || "";
+    const fd = new FormData();
+    fd.append("auth", authPw);
+    fd.append("id", String(paperId));
+    fd.append("file", file);
+    let r = await fetch("/api/upload", { method: "POST", body: fd });
+    if (r.status === 401) {
+      authPw = window.prompt("Wrong password — try again:") || "";
+      fd.set("auth", authPw);
+      r = await fetch("/api/upload", { method: "POST", body: fd });
+    }
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      alert(err.error || "Upload failed.");
+      return;
+    }
+    refresh();
+  };
+  inp.click();
+}
+
 function closeAllTagMenus() {
   elSections.querySelectorAll(".tagmenu").forEach((m) => { m.hidden = true; });
 }
@@ -489,7 +616,7 @@ async function runSearch(q, tag) {
     elSections.innerHTML = `
       <section class="section">
         <div class="sechead"><h2>${tag ? prettyLabel(tag) : "Search"}</h2><span class="count">${papers.length}</span></div>
-        <div class="grid">${papers.map(cardHtml).join("")}</div>
+        <div class="grid">${papers.map((p) => cardHtml(p, false)).join("")}</div>
       </section>`;
     elStatus.textContent = papers.length ? "" : "Nothing matched.";
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -507,7 +634,7 @@ async function runTrash() {
     elSections.innerHTML = `
       <section class="section">
         <div class="sechead"><h2>Trash</h2><span class="count">${papers.length}</span></div>
-        <div class="grid">${papers.map(cardHtml).join("")}</div>
+        <div class="grid">${papers.map((p) => cardHtml(p, false)).join("")}</div>
       </section>`;
     elStatus.textContent = papers.length ? "" : "Trash is empty.";
     updateTrashLink(papers.length);

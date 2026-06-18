@@ -167,7 +167,7 @@ footer.page-footer { margin-top: 20px; padding: 18px 30px 22px; text-align: cent
 .cardx-compact .cardshot { margin-top: 6px; width: 44px; height: 30px; }
 
 .cardacts .uploadbtn { font-family: var(--mono); font-size: 14px; font-weight: 600; }
-.cardacts .readbtn { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+.cardacts .readbtn { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.02em; transform: translateY(1px); }
 .cardacts .starbtn.on, .cardacts .readbtn.on { color: var(--accent); }
 .cardacts .uploadbtn:hover { color: var(--accent); }
 

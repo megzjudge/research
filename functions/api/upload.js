@@ -3,10 +3,12 @@
  * Requires Pages secrets: AUTH, GITHUB_TOKEN
  * Optional: GITHUB_REPO (default megzjudge/research)
  *
- * Commits image to images/{id}.{ext} in GitHub, stores path in D1.
+ * Commits images to images/{id}-{n}.{ext} in GitHub.
+ * Multiple paths stored pipe-delimited in papers.screenshot (same column as tags).
  */
 
 const MAX_BYTES = 2 * 1024 * 1024;
+const MAX_SHOTS = 24;
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 export async function onRequestPost({ request, env }) {
@@ -48,29 +50,53 @@ export async function onRequestPost({ request, env }) {
     : type === "image/gif" ? "gif"
     : "jpg";
   const repo = env.GITHUB_REPO || "megzjudge/research";
-  const path = `images/${id}.${ext}`;
-  const screenshot = `/${path}`;
 
   try {
     const row = await env.research
-      .prepare(`SELECT id FROM papers WHERE id = ?`)
+      .prepare(`SELECT id, screenshot FROM papers WHERE id = ?`)
       .bind(id)
       .first();
     if (!row) return json({ error: "paper not found" }, 404);
 
+    const paths = parseScreenshots(row.screenshot);
+    if (paths.length >= MAX_SHOTS) {
+      return json({ error: `max ${MAX_SHOTS} screenshots per paper` }, 400);
+    }
+
+    const suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    const path = `images/${id}-${suffix}.${ext}`;
+    const added = `/${path}`;
+
     const existing = await githubGet(env.GITHUB_TOKEN, repo, path);
     const b64 = toBase64(buf);
     await githubPut(env.GITHUB_TOKEN, repo, path, b64, existing?.sha, id);
+
+    paths.push(added);
+    const screenshot = paths.join("|");
 
     await env.research
       .prepare(`UPDATE papers SET screenshot = ? WHERE id = ?`)
       .bind(screenshot, id)
       .run();
 
-    return json({ ok: true, id, screenshot });
+    return json({ ok: true, id, screenshot, added, screenshots: paths });
   } catch (err) {
     return json({ error: String(err) }, 500);
   }
+}
+
+function parseScreenshots(raw) {
+  if (!raw || !String(raw).trim()) return [];
+  const s = String(raw).trim();
+  if (s.startsWith("[")) {
+    try {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr)) {
+        return arr.map(String).map((p) => p.trim()).filter(Boolean);
+      }
+    } catch { /* fall through */ }
+  }
+  return s.split("|").map((p) => p.trim()).filter(Boolean);
 }
 
 async function githubGet(token, repo, path) {

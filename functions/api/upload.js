@@ -1,8 +1,9 @@
 /**
  * POST /api/upload  — screenshot upload (multipart: auth, id, file)
  * Requires Pages secrets: AUTH, GITHUB_TOKEN
+ * Optional: GITHUB_REPO (default megzjudge/research)
  *
- * Commits image to images/papers/{id}.{ext} in GitHub, stores path in D1.
+ * Commits image to images/{id}.{ext} in GitHub, stores path in D1.
  */
 
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -47,7 +48,7 @@ export async function onRequestPost({ request, env }) {
     : type === "image/gif" ? "gif"
     : "jpg";
   const repo = env.GITHUB_REPO || "megzjudge/research";
-  const path = `images/papers/${id}.${ext}`;
+  const path = `images/${id}.${ext}`;
   const screenshot = `/${path}`;
 
   try {

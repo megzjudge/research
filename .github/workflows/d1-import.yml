@@ -10,11 +10,7 @@ on:
         type: choice
         options:
           - all
-          - scan_1.sql
-          - scan_2.sql
-          - scan_3.sql
-          - scan_6.sql
-          - scan_7.sql
+          - sd1_merge_duplicates.sql
 
 jobs:
   import:

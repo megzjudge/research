@@ -303,28 +303,85 @@ This should print out Title, Authors, Link, Alert Subject.
 Sometimes two Scholar alerts can be folded into the same row (e.g. "Dark Triad"
 and "Dark Tetrad", or "Big 5" and "Big Five").
 
-Most of this happens in the **Step 10 · Edit Email Worker** code right at the top of the file:
+Most of this happens in the **Step 10 · Edit Email Worker** code right at the top of the file (this file tells the search terms how to INGEST into the D1):
 
 ```
-// Phrases recognized in alert subjects (case-insensitive, matched anywhere).
+// Email alert terms
 const KNOWN_TERMS = [
-  "Dark Tetrad", "Dark Triad", "Machiavellianism", "Industriousness",
   "Big Five", "Big 5", "MBTI", "Myers-Briggs", "Myers Briggs",
-  "HEXACO", "Sociosexuality",
+  "industriousness AND orderliness",
+  "disagreeableness AND agreeableness",
+  "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Language", "Philosophy of Religion",
+  ... etc
 ];
 
-// Map variant spellings (lowercase) to one canonical tag so they share a
-// section. Terms with no entry here pass through unchanged.
+// Map variant spellings to one canonical tag so they share a section.
 const TERM_ALIASES = {
-  "big 5": "Big Five",            // spelling variants → Big Five
-  "big five": "Big Five",         // spelling variants → Big Five
-  "myers-briggs": "MBTI",         // spelling variants → MBTI
-  "myers briggs": "MBTI",         // spelling variants → MBTI
-  "dark triad": "Dark Tetrad",    // editorial merge: Triad + Tetrad share one section
+  "big 5": "Big Five",
+  "big five": "Big Five",
+  "myers-briggs": "MBTI",
+  "myers briggs": "MBTI",
+  "dark tetrad": "Dark Triad",
+  "machiavellianism": "Dark Triad",
+  "bisexual": "Bisexuality",
+  "bisexual women": "Bisexuality",
+  ... etc
 };
+
+// Sidebar section tags — canonical() normalizes case variants to these.
+const CANONICAL_TAGS = [
+  "Big Five",
+  "Big Ten",
+  "MBTI",
+  "HEXACO",
+  "Dark Triad",
+  ... etc
+];
 ```
 
-Edit this section as you see fit at any time in the worker.js.
+But this information also lives in your script.js file for a different reason - this is what your website uses to "show you" the information, ie, if you are using any organisation AFTER its ingested for the terms you need to add it here. Ie, I have grouped Email search terms together (first const below), and have renamed Tags shown on the website (third const, as Big Ten is not a searchable term on google scholar its made up of pulling together other boolean search terms to give me Big Ten data).
+
+```
+// This helps the website group terms together visually
+const RAIL_GROUPS = [
+  {
+    banner: "Personality",
+    tags: ["Big Five", "Big Ten", "MBTI", "HEXACO", "Indian Psychology"],
+  },
+  {
+    banner: "Deviancy",
+    tags: ["Dark Triad", "ADHD and Nicotine", "Bisexuality", "Sociosexuality", "High Sex Drive"],
+  },
+  {
+    banner: "Specifics",
+    tags: ["Experimental Philosophy", "Followed Authors", "Intelligence Quotient"],
+  },
+];
+
+// Keep in sync with worker.js
+const TERM_ALIASES = {
+  "big 5": "Big Five",
+  "big five": "Big Five",
+  "myers-briggs": "MBTI",
+  "myers briggs": "MBTI",
+  "dark tetrad": "Dark Triad",
+  "machiavellianism": "Dark Triad",
+  "bisexual": "Bisexuality",
+  "bisexual women": "Bisexuality",
+  ... etc
+};
+
+const CANONICAL_TAGS = [
+  "Big Five",
+  "Big Ten",
+  "MBTI",
+  "HEXACO",
+  "Dark Triad",
+  ... etc
+];
+```
+
+Edit this section as you see fit at any time in the worker.js (in cloudflare) and script.js (in github).
 
 To add new terms in the D1:
 

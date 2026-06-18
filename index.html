@@ -27,8 +27,8 @@
 <body>
   <div class="layout">
     <aside class="rail">
-      <p class="brand">New Papers Alerts</p>
-      <p class="tagline">New papers across the taxonomies I track through Google Scholar Alerts.</p>
+      <p class="brand">New Papers Alerts<span class="dot">.</span></p>
+      <p class="tagline">New papers across the trait taxonomies I track through Google Scholar Alerts.</p>
       <ul id="railnav" class="railnav"></ul>
       <div class="addbox">
         <input id="newtag" type="text" placeholder="add a construct…" autocomplete="off" />
@@ -59,6 +59,11 @@
     <p>© Megan Judge</p>
     <p>To create a version of this website yourself, <a href="https://github.com/megzjudge/research/" target="_blank" rel="noopener noreferrer">see here</a>.</p>
   </footer>
+
+  <div id="lightbox" class="lightbox" hidden>
+    <button type="button" class="lightbox-close" aria-label="close preview">×</button>
+    <img id="lightbox-img" alt="" />
+  </div>
 
   <script src="/script.js"></script>
 </body>

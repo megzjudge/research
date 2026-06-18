@@ -257,9 +257,9 @@ function renderAll(starred, sections) {
         <span class="count">${starred.length}</span>
       </div>
       <div class="carousel">
-        <button class="navbtn prev" aria-label="previous papers">&#10094;</button>
+        <button class="navbtn prev" aria-label="previous papers"></button>
         <div class="grid grid-page"></div>
-        <button class="navbtn next" aria-label="more papers">&#10095;</button>
+        <button class="navbtn next" aria-label="more papers"></button>
       </div>`;
     elSections.appendChild(sec);
     initCarousel(sec, { tag: "__starred", papers: starred });
@@ -274,9 +274,9 @@ function renderAll(starred, sections) {
     const body = s.count === 0
       ? `<p class="sec-empty">No papers yet — waiting on the first alert.</p>`
       : `<div class="carousel">
-           <button class="navbtn prev" aria-label="previous papers">&#10094;</button>
+           <button class="navbtn prev" aria-label="previous papers"></button>
            <div class="grid grid-page"></div>
-           <button class="navbtn next" aria-label="more papers">&#10095;</button>
+           <button class="navbtn next" aria-label="more papers"></button>
          </div>` +
         (s.count > FETCH ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "");
 

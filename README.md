@@ -298,10 +298,11 @@ SELECT title, authors, link, alert_subject FROM papers;
 
 This should print out Title, Authors, Link, Alert Subject.
 
-### (Optional) Block 11:
+### Block 11:
 
 Sometimes two Scholar alerts can be folded into the same row (e.g. "Dark Triad"
-and "Dark Tetrad", or "Big 5" and "Big Five").
+and "Dark Tetrad", or "Big 5" and "Big Five"). To edit your search terms you 
+also do that within the worker.js and script.js alongside the prior D1 SQL.
 
 Most of this happens in the **Step 10 · Edit Email Worker** code right at the top of the file (this file tells the search terms how to INGEST into the D1):
 

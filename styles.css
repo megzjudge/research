@@ -111,16 +111,15 @@ footer.page-footer { margin-top: 20px; padding: 18px 30px 22px; text-align: cent
 @media (max-width: 540px) { footer.page-footer { padding: 22px 18px; } }
 
 .carousel { position: relative; }
-.navbtn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 34px; height: 34px; cursor: pointer; padding: 0; display: grid; place-items: center; color: var(--accent); font-size: 0; line-height: 0; background: rgba(22, 21, 26, .85); border: 1px solid var(--accent); border-radius: 5px; transition: color .12s, border-color .12s, opacity .12s; }
-.navbtn::before { content: ""; display: block; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; }
+.navbtn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 34px; height: 34px; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; color: var(--accent); font-size: 0; line-height: 0; background: rgba(22, 21, 26, .85); border: 1px solid var(--accent); border-radius: 5px; transition: color .12s, border-color .12s, opacity .12s; --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolyline points='9 6 15 12 9 18' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.navbtn::before { content: ""; display: block; width: 10px; height: 10px; flex-shrink: 0; background: currentColor; -webkit-mask: var(--chevron) center / contain no-repeat; mask: var(--chevron) center / contain no-repeat; }
 .navbtn.prev { left: -16px; }
-.navbtn.prev::before { transform: rotate(135deg); margin-left: 2px; }
+.navbtn.prev::before { transform: scaleX(-1); }
 .navbtn.next { right: -16px; }
-.navbtn.next::before { transform: rotate(-45deg); margin-right: 2px; }
 .navbtn:hover:not(:disabled) { color: var(--ink); border-color: var(--line-strong); }
 .navbtn:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
 .navbtn:disabled { opacity: 0; pointer-events: none; }
-@media (max-width: 540px) { .navbtn { width: 28px; height: 28px; } .navbtn::before { width: 6px; height: 6px; border-width: 1.5px; } .navbtn.prev { left: -9px; } .navbtn.next { right: -9px; } }
+@media (max-width: 540px) { .navbtn { width: 28px; height: 28px; } .navbtn::before { width: 8px; height: 8px; } .navbtn.prev { left: -9px; } .navbtn.next { right: -9px; } }
 
 .cardx .cardtags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
 .tagchip { font-family: var(--mono); font-size: 10px; letter-spacing: .02em; color: var(--accent); background: var(--accent-soft); border: none; border-radius: 3px; padding: 2.5px 7px; cursor: pointer; transition: color .12s, background .12s; }

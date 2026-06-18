@@ -1,0 +1,53 @@
+name: D1 import SQL
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Run all scan files in order, or one file
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - scan_1.sql
+          - scan_2.sql
+          - scan_3.sql
+          - scan_6.sql
+          - scan_7.sql
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.API }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Run all scan files (scan_1 → scan_7)
+        if: inputs.mode == 'all'
+        run: |
+          set -euo pipefail
+          for f in scan_1.sql scan_2.sql scan_3.sql scan_6.sql scan_7.sql; do
+            if [[ ! -f "$f" ]]; then
+              echo "Missing $f — add it to the repo root and re-run."
+              exit 1
+            fi
+            echo "=== Running $f ==="
+            wrangler d1 execute research --remote --file="$f"
+          done
+
+      - name: Run single scan file
+        if: inputs.mode != 'all'
+        run: wrangler d1 execute research --remote --file="${{ inputs.mode }}"
+
+      - name: Verify paper count
+        run: wrangler d1 execute research --remote --command "SELECT COUNT(*) AS papers FROM papers;"

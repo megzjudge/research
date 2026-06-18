@@ -208,6 +208,27 @@ async function loadSections() {
   }
 }
 
+function sectionsInRailOrder(sections) {
+  const byTag = new Map(sections.map((s) => [s.tag, s]));
+  const out = [];
+
+  for (const group of RAIL_GROUPS) {
+    for (const tag of group.tags) {
+      const s = byTag.get(tag);
+      if (!s || s.hidden) continue;
+      out.push(s);
+    }
+  }
+
+  const grouped = new Set(RAIL_GROUPS.flatMap((g) => g.tags));
+  for (const s of sections) {
+    if (s.hidden || grouped.has(s.tag) || grouped.has(canonical(s.tag))) continue;
+    out.push(s);
+  }
+
+  return out;
+}
+
 function renderRail(sections, starredCount, trashCount) {
   elRail.innerHTML = "";
   const byTag = new Map(sections.map((s) => [s.tag, s]));
@@ -265,7 +286,7 @@ function renderAll(starred, sections) {
     initCarousel(sec, { tag: "__starred", papers: starred });
   }
 
-  for (const s of sections) {
+  for (const s of sectionsInRailOrder(sections)) {
     if (s.hidden) continue;
     const sec = document.createElement("section");
     sec.className = "section";
@@ -283,12 +304,7 @@ function renderAll(starred, sections) {
     sec.innerHTML = `
       <div class="sechead">
         <h2>${prettyLabel(sectionLabel(s))}</h2>
-        ${s.pinned ? `<span class="pin">pinned</span>` : ""}
         <span class="count">${s.count}</span>
-        <span class="secacts">
-          <button data-act="pin"  data-tag="${esc(s.tag)}" data-val="${s.pinned?0:1}">${s.pinned?"unpin":"pin"}</button>
-          <button data-act="hide" data-tag="${esc(s.tag)}">hide</button>
-        </span>
       </div>${body}`;
     elSections.appendChild(sec);
     if (s.count > 0) initCarousel(sec, s);
@@ -447,17 +463,6 @@ function refresh() {
 }
 
 function wireSectionActions() {
-  elSections.querySelectorAll("[data-act]").forEach(btn => {
-    btn.onclick = async () => {
-      const tag = btn.getAttribute("data-tag");
-      const act = btn.getAttribute("data-act");
-      const payload = { tag };
-      if (act === "pin")  { payload.pinned = +btn.getAttribute("data-val"); }
-      if (act === "hide") { payload.hidden = 1; }
-      await postWrite("/api/sections", payload);
-      loadSections();
-    };
-  });
   elSections.querySelectorAll("[data-all]").forEach(a => {
     a.onclick = (e) => { e.preventDefault(); elQ.value = ""; runSearch("", a.getAttribute("data-all")); };
   });

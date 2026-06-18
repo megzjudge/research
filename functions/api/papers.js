@@ -138,7 +138,12 @@ export async function onRequestPost({ request, env }) {
     }
 
     if (action === "screenshot") {
-      const screenshot = (body.screenshot || "").trim() || null;
+      let screenshot = null;
+      if (Array.isArray(body.screenshots)) {
+        screenshot = body.screenshots.map(String).map((p) => p.trim()).filter(Boolean).join("|") || null;
+      } else {
+        screenshot = (body.screenshot || "").trim() || null;
+      }
       await env.research
         .prepare(`UPDATE papers SET screenshot = ? WHERE id = ?`)
         .bind(screenshot, id)

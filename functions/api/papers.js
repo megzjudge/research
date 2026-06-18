@@ -1,17 +1,13 @@
 /**
  * GET /api/papers
- *   ?q=<search text>      full-text search over title/authors/snippet
- *   ?tag=<term>           filter to a single tag
- *   ?status=<s>           filter to inbox | starred | trash
- *   ?limit=50&offset=0    pagination
- *
- * POST /api/papers        set a paper's triage status, tag, or link
- *
- * Binding required on the Pages project:
- *   D1 database  ->  variable name `research`
+ * POST /api/papers  — status, tag, link, read, star, screenshot
  */
 
 const STATUSES = ["inbox", "starred", "trash"];
+
+const PAPER_FIELDS = `
+  p.id, p.title, p.authors, p.snippet, p.link, p.venue, p.first_seen, p.status,
+  p.screenshot, p.read_at, p.starred_at`;
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
@@ -53,7 +49,7 @@ export async function onRequestGet({ request, env }) {
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
   const sql = `
-    SELECT p.id, p.title, p.authors, p.snippet, p.link, p.venue, p.first_seen, p.status,
+    SELECT ${PAPER_FIELDS},
            (SELECT group_concat(tag, '|') FROM tags WHERE paper_id = p.id) AS tags
     FROM papers p
     ${whereSql}
@@ -64,10 +60,7 @@ export async function onRequestGet({ request, env }) {
 
   try {
     const { results } = await env.research.prepare(sql).bind(...binds).all();
-    const papers = (results || []).map((r) => ({
-      ...r,
-      tags: r.tags ? r.tags.split("|") : [],
-    }));
+    const papers = (results || []).map(mapPaper);
     return json({ papers, limit, offset });
   } catch (err) {
     return json({ error: String(err) }, 500);
@@ -109,7 +102,9 @@ export async function onRequestPost({ request, env }) {
     if (action === "link") {
       const link = (body.link || "").trim();
       if (!link) return json({ error: "link required" }, 400);
-      if (!/^https?:\/\//i.test(link)) return json({ error: "link must start with http:// or https://" }, 400);
+      if (!/^https?:\/\//i.test(link)) {
+        return json({ error: "link must start with http:// or https://" }, 400);
+      }
       try {
         await env.research
           .prepare(`UPDATE papers SET link = ? WHERE id = ?`)
@@ -124,8 +119,51 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: true, id, link });
     }
 
+    if (action === "star") {
+      const on = body.on !== false;
+      await env.research
+        .prepare(`UPDATE papers SET starred_at = ? WHERE id = ?`)
+        .bind(on ? isoNow() : null, id)
+        .run();
+      return json({ ok: true, id, starred: on });
+    }
+
+    if (action === "read") {
+      const on = body.on !== false;
+      await env.research
+        .prepare(`UPDATE papers SET read_at = ? WHERE id = ?`)
+        .bind(on ? isoNow() : null, id)
+        .run();
+      return json({ ok: true, id, read: on });
+    }
+
+    if (action === "screenshot") {
+      const screenshot = (body.screenshot || "").trim() || null;
+      await env.research
+        .prepare(`UPDATE papers SET screenshot = ? WHERE id = ?`)
+        .bind(screenshot, id)
+        .run();
+      return json({ ok: true, id, screenshot });
+    }
+
     const status = (body.status || "").trim();
-    if (!STATUSES.includes(status)) return json({ error: "status must be inbox|starred|trash" }, 400);
+    if (!STATUSES.includes(status)) {
+      return json({ error: "status must be inbox|starred|trash" }, 400);
+    }
+    if (status === "starred") {
+      await env.research
+        .prepare(`UPDATE papers SET status = 'inbox', starred_at = ? WHERE id = ?`)
+        .bind(isoNow(), id)
+        .run();
+      return json({ ok: true, id, status: "inbox", starred: true });
+    }
+    if (status === "inbox") {
+      await env.research
+        .prepare(`UPDATE papers SET status = 'inbox' WHERE id = ?`)
+        .bind(id)
+        .run();
+      return json({ ok: true, id, status: "inbox" });
+    }
     await env.research
       .prepare(`UPDATE papers SET status = ? WHERE id = ?`)
       .bind(status, id)
@@ -134,6 +172,14 @@ export async function onRequestPost({ request, env }) {
   } catch (err) {
     return json({ error: String(err) }, 500);
   }
+}
+
+function mapPaper(r) {
+  return { ...r, tags: r.tags ? r.tags.split("|") : [] };
+}
+
+function isoNow() {
+  return new Date().toISOString().replace("T", " ").slice(0, 19);
 }
 
 function ftsQuery(q) {

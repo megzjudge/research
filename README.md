@@ -170,7 +170,7 @@ your-repo/                          # ← syncs to GitHub
     ├── tags.js                     # GET tag list + counts
     └── sections.js                 # GET sections+papers · POST curate (add/pin/hide)
 ```
-Wrangler.toml and .github/workflows files are not neccessary - they can be used for bulk imports with tweaks.
+Wrangler.toml and .github/workflows files are not neccessary - they can be used for bulk imports with tweaks. You need to click Settings in your Github repository, add the secrets CLOUDFLARE_API_TOKEN and ACCOUNT_ID which you have sourced from Cloudflare. API: On Cloudflare click top right icon, Profile, API Tokens then create > Account / D1 / Edit, Account / Account Settings / Read, and User / User Details / Read - then in the next section Include > click your account. ID: h([dash.cloudflare.com](https://dash.cloudflare.com)) click the three buttons on the far right, copy Account ID.
 
 > Only the site auto-deploys on push. The Email Worker is deployed independently,
 > and the schema is a manual one-off — neither belongs in the synced repo.

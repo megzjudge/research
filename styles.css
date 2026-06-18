@@ -88,11 +88,7 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .section.hidden-sec { opacity: .5; }
 .sechead { display: flex; align-items: baseline; gap: 12px; padding-bottom: 12px; border-bottom: 2px solid var(--accent-bar); margin-bottom: 20px; }
 .sechead h2 { font-family: var(--serif); font-weight: 600; font-size: 22px; margin: 0; letter-spacing: -0.01em; }
-.sechead .pin { color: var(--accent); font-family: var(--mono); font-size: 11px; }
 .sechead .count { font-family: var(--mono); font-size: 11px; color: var(--faint); }
-.sechead .secacts { margin-left: auto; display: flex; gap: 6px; }
-.secacts button { font-family: var(--mono); font-size: 10.5px; color: var(--muted); cursor: pointer; background: transparent; border: 1px solid var(--line-strong); border-radius: 3px; padding: 3px 8px; }
-.secacts button:hover { color: var(--accent); border-color: var(--accent); }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .cardx { background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 16px 16px 14px; display: flex; flex-direction: column; transition: border-color .12s, transform .12s; }
@@ -157,3 +153,27 @@ footer.page-footer { margin-top: 20px; padding: 18px 30px 22px; text-align: cent
 .tagmenu[hidden] { display: none; }
 .tagmenu-item { text-align: left; font-family: var(--mono); font-size: 11px; color: var(--ink); background: transparent; border: none; border-radius: 3px; padding: 5px 8px; cursor: pointer; white-space: nowrap; }
 .tagmenu-item:hover { background: var(--accent-soft); color: var(--accent); }
+
+.secbody { display: flex; flex-direction: column; gap: 14px; }
+.compact-wrap { border-top: 1px solid var(--line); padding-top: 12px; }
+.compact-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.cardx-compact { padding: 10px 11px 9px; }
+.cardx-compact a.ttl { font-size: 13px; line-height: 1.25; }
+.cardx-compact .cardfoot { margin-top: 8px; justify-content: flex-end; }
+.cardx-compact .cardacts button { font-size: 12px; }
+
+.cardshot { display: block; margin-top: 8px; padding: 0; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--paper); cursor: zoom-in; overflow: hidden; width: 52px; height: 36px; flex-shrink: 0; }
+.cardshot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cardx-compact .cardshot { margin-top: 6px; width: 44px; height: 30px; }
+
+.cardacts .uploadbtn { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+.cardacts .readbtn { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+.cardacts .starbtn.on, .cardacts .readbtn.on { color: var(--accent); }
+.cardacts .uploadbtn:hover { color: var(--accent); }
+
+.lightbox { position: fixed; inset: 0; z-index: 100; background: rgba(10, 9, 12, .88); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.lightbox[hidden] { display: none; }
+.lightbox img { max-width: min(960px, 96vw); max-height: 90vh; object-fit: contain; border-radius: 4px; box-shadow: 0 12px 40px rgba(0,0,0,.45); }
+.lightbox-close { position: absolute; top: 16px; right: 20px; font-size: 28px; line-height: 1; color: var(--ink); background: transparent; border: none; cursor: pointer; padding: 4px 8px; }
+.lightbox-close:hover { color: var(--accent); }
+body.lightbox-open { overflow: hidden; }

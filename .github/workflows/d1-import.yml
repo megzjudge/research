@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.API }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}
+      ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
 

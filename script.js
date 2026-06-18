@@ -11,6 +11,7 @@ const elTrashLink  = document.getElementById("trashlink");
 const elTrashCount = document.getElementById("trashcount");
 const elLightbox   = document.getElementById("lightbox");
 const elLightboxImg = document.getElementById("lightbox-img");
+const elToast      = document.getElementById("toast");
 
 const pageOf = new Map();
 let view   = "sections";
@@ -376,11 +377,39 @@ window.addEventListener("resize", () => {
   }, 150);
 });
 
+function parseScreenshots(raw) {
+  if (!raw || !String(raw).trim()) return [];
+  const s = String(raw).trim();
+  if (s.startsWith("[")) {
+    try {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr)) {
+        return arr.map(String).map((p) => p.trim()).filter(Boolean);
+      }
+    } catch { /* pipe-delimited fallback */ }
+  }
+  return s.split("|").map((p) => p.trim()).filter(Boolean);
+}
+
+let _toastTimer;
+function showToast(msg, ok = true) {
+  if (!elToast) return;
+  clearTimeout(_toastTimer);
+  elToast.textContent = msg;
+  elToast.classList.toggle("toast-err", !ok);
+  elToast.hidden = false;
+  _toastTimer = setTimeout(() => { elToast.hidden = true; }, ok ? 2800 : 4200);
+}
+
 function shotHtml(p) {
-  if (!p.screenshot) return "";
-  return `<button type="button" class="cardshot" data-lightbox="${esc(p.screenshot)}" title="view screenshot" aria-label="view screenshot">
-    <img src="${esc(p.screenshot)}" alt="" loading="lazy" />
-  </button>`;
+  const shots = parseScreenshots(p.screenshot);
+  if (!shots.length) return "";
+  const btns = shots.map((src, i) =>
+    `<button type="button" class="cardshot" data-lightbox="${esc(src)}" title="view screenshot ${i + 1}" aria-label="view screenshot ${i + 1}">
+      <img src="${esc(src)}" alt="" loading="lazy" />
+    </button>`
+  ).join("");
+  return `<div class="cardshots">${btns}</div>`;
 }
 
 function cardHtml(p, compact) {
@@ -433,7 +462,7 @@ function cardActs(p) {
     </span>`;
   }
   const linkBtn = `<button class="urlbtn" data-editurl="${p.id}" data-link="${esc(p.link)}" title="replace link" aria-label="replace link">↗</button>`;
-  const uploadBtn = `<button class="uploadbtn" data-upload="${p.id}" title="upload screenshot" aria-label="upload screenshot">+</button>`;
+  const uploadBtn = `<button class="uploadbtn" data-upload="${p.id}" title="upload screenshot(s)" aria-label="upload screenshot(s)">+</button>`;
   const trashBtn = `<button data-pstatus="trash" data-id="${p.id}" title="trash" aria-label="trash">✕</button>`;
   const starBtn = isStarred(p)
     ? `<button class="starbtn on" data-star="${p.id}" data-on="0" title="unstar" aria-label="unstar">★</button>`
@@ -550,26 +579,40 @@ async function pickScreenshot(paperId) {
   const inp = document.createElement("input");
   inp.type = "file";
   inp.accept = "image/jpeg,image/png,image/webp,image/gif";
+  inp.multiple = true;
   inp.onchange = async () => {
-    const file = inp.files && inp.files[0];
-    if (!file) return;
+    const files = inp.files ? [...inp.files] : [];
+    if (!files.length) return;
     if (authPw === null) authPw = window.prompt("Password:") || "";
-    const fd = new FormData();
-    fd.append("auth", authPw);
-    fd.append("id", String(paperId));
-    fd.append("file", file);
-    let r = await fetch("/api/upload", { method: "POST", body: fd });
-    if (r.status === 401) {
-      authPw = window.prompt("Wrong password — try again:") || "";
-      fd.set("auth", authPw);
-      r = await fetch("/api/upload", { method: "POST", body: fd });
+    let ok = 0;
+    let lastErr = "";
+    for (const file of files) {
+      const fd = new FormData();
+      fd.append("auth", authPw);
+      fd.append("id", String(paperId));
+      fd.append("file", file);
+      let r = await fetch("/api/upload", { method: "POST", body: fd });
+      if (r.status === 401) {
+        authPw = window.prompt("Wrong password — try again:") || "";
+        fd.set("auth", authPw);
+        r = await fetch("/api/upload", { method: "POST", body: fd });
+      }
+      if (r.ok) {
+        ok++;
+      } else {
+        const err = await r.json().catch(() => ({}));
+        lastErr = err.error || "Upload failed.";
+      }
     }
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      alert(err.error || "Upload failed.");
-      return;
+    if (ok && ok < files.length) {
+      showToast(`${ok} of ${files.length} uploaded. ${lastErr}`, false);
+      refresh();
+    } else if (ok) {
+      showToast(ok === 1 ? "Screenshot uploaded." : `${ok} screenshots uploaded.`);
+      refresh();
+    } else {
+      showToast(lastErr || "Upload failed.", false);
     }
-    refresh();
   };
   inp.click();
 }

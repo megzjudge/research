@@ -10,7 +10,7 @@ on:
         type: choice
         options:
           - all
-          - sd1_merge_duplicates.sql
+          - d1_merge_duplicates.sql
 
 jobs:
   import:

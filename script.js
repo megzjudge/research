@@ -130,8 +130,16 @@ function slug(s){ return "sec-" + (s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-
 
 const ACRONYMS = new Set(["adhd","mbti","hexaco","ocd","ptsd","iq","eq","big5","asd","bpd"]);
 
+const TAG_DISPLAY_LABELS = {
+  "Dark Triad": "Dark Triad / Dark Tetrad / Machiavellianism",
+};
+
+function sectionLabel(s) {
+  return TAG_DISPLAY_LABELS[s?.tag] || s?.label || s?.tag || "";
+}
+
 function prettyLabel(raw) {
-  const s = (raw || "").trim();
+  let s = (raw || "").trim();
 
   const term = (word) =>
     word.replace(/["""']/g, "").split(/\s+/).filter(Boolean).map((w) => {
@@ -222,16 +230,16 @@ function renderRail(sections, starredCount, trashCount) {
       const s = byTag.get(tag);
       if (!s || s.hidden) continue;
       const li = document.createElement("li");
-      li.innerHTML = `<a href="#${slug(s.tag)}"><span>${prettyLabel(s.label)}</span><span class="c">${s.count}</span></a>`;
+      li.innerHTML = `<a href="#${slug(s.tag)}"><span>${prettyLabel(sectionLabel(s))}</span><span class="c">${s.count}</span></a>`;
       elRail.appendChild(li);
     }
   }
 
   const grouped = new Set(RAIL_GROUPS.flatMap((g) => g.tags));
   for (const s of sections) {
-    if (s.hidden || grouped.has(s.tag)) continue;
+    if (s.hidden || grouped.has(s.tag) || grouped.has(canonical(s.tag))) continue;
     const li = document.createElement("li");
-    li.innerHTML = `<a href="#${slug(s.tag)}"><span>${prettyLabel(s.label)}</span><span class="c">${s.count}</span></a>`;
+    li.innerHTML = `<a href="#${slug(s.tag)}"><span>${prettyLabel(sectionLabel(s))}</span><span class="c">${s.count}</span></a>`;
     elRail.appendChild(li);
   }
 }
@@ -274,7 +282,7 @@ function renderAll(starred, sections) {
 
     sec.innerHTML = `
       <div class="sechead">
-        <h2>${prettyLabel(s.label)}</h2>
+        <h2>${prettyLabel(sectionLabel(s))}</h2>
         ${s.pinned ? `<span class="pin">pinned</span>` : ""}
         <span class="count">${s.count}</span>
         <span class="secacts">

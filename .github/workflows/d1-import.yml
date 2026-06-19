@@ -9,7 +9,8 @@ on:
         default: all
         type: choice
         options:
-          - chunk_015.sql
+          - block_001.sql
+          - block_001w.sql
 
 jobs:
   import:

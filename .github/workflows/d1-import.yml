@@ -9,10 +9,31 @@ on:
         default: all
         type: choice
         options:
-          - chunk_015.sql
-          - chunk_016.sql
-          - chunk_017.sql
-          - chunk_018.sql
+          - block_001.sql
+          - block_002.sql
+          - block_003.sql
+          - block_004.sql
+          - block_005.sql
+          - block_006.sql
+          - block_007.sql
+          - block_008.sql
+          - block_009.sql
+          - block_010.sql
+          - block_011.sql
+          - block_012.sql
+          - block_013.sql
+          - block_014.sql
+          - block_015.sql
+          - block_016.sql
+          - block_017.sql
+          - block_018.sql
+          - block_019.sql
+          - block_020.sql
+          - block_021.sql
+          - block_022.sql
+          - block_023.sql
+          - block_024.sql
+          - block_025.sql
 
 jobs:
   import:

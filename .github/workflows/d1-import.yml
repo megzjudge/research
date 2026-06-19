@@ -9,10 +9,6 @@ on:
         default: all
         type: choice
         options:
-          - block_004.sql
-          - block_005.sql
-          - block_006.sql
-          - block_007.sql
           - block_008.sql
           - block_009.sql
           - block_010.sql

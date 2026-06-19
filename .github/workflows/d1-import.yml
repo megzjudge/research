@@ -10,11 +10,6 @@ on:
         type: choice
         options:
           - block_020.sql
-          - block_021.sql
-          - block_022.sql
-          - block_023.sql
-          - block_024.sql
-          - block_025.sql
 
 jobs:
   import:

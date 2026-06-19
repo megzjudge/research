@@ -9,7 +9,6 @@ on:
         default: all
         type: choice
         options:
-          - chunk_007.sql
           - chunk_008.sql
           - chunk_009.sql
           - chunk_010.sql

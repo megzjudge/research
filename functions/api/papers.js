@@ -1,12 +1,12 @@
 /**
  * GET /api/papers
- * POST /api/papers  — status, tag, link, read, star, screenshot
+ * POST /api/papers  — create, status, tag, link, read, star, screenshot
  */
 
 const STATUSES = ["inbox", "starred", "trash"];
 
 const PAPER_FIELDS = `
-  p.id, p.title, p.authors, p.snippet, p.link, p.venue, p.first_seen, p.status,
+  p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
   p.screenshot, p.read_at, p.starred_at`;
 
 export async function onRequestGet({ request, env }) {
@@ -75,12 +75,61 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "unauthorized" }, 401);
   }
 
-  const id = parseInt(body.id, 10);
-  if (!Number.isFinite(id)) return json({ error: "id required" }, 400);
-
   const action = body.action || "status";
 
   try {
+    if (action === "create") {
+      const title = (body.title || "").trim();
+      const authors = (body.authors || "").trim();
+      const snippet = (body.snippet || "").trim();
+      const link = (body.link || "").trim();
+      const tag = (body.tag || "").trim();
+      if (!title) return json({ error: "title required" }, 400);
+      if (!link) return json({ error: "link required" }, 400);
+      if (!/^https?:\/\//i.test(link)) {
+        return json({ error: "link must start with http:// or https://" }, 400);
+      }
+      if (!tag) return json({ error: "tag required" }, 400);
+
+      let row;
+      try {
+        await env.research
+          .prepare(
+            `INSERT INTO papers (title, authors, snippet, link, alert_subject, status)
+             VALUES (?, ?, ?, ?, ?, 'inbox')
+             ON CONFLICT(link) DO NOTHING`
+          )
+          .bind(title, authors, snippet, link, "manual add")
+          .run();
+        row = await env.research
+          .prepare(`SELECT id FROM papers WHERE link = ?`)
+          .bind(link)
+          .first();
+      } catch (e) {
+        if (/UNIQUE/i.test(String(e))) {
+          return json({ error: "another paper already has that link" }, 409);
+        }
+        throw e;
+      }
+      if (!row) {
+        row = await env.research
+          .prepare(`SELECT id FROM papers WHERE link = ?`)
+          .bind(link)
+          .first();
+      }
+      if (!row) return json({ error: "couldn't insert paper" }, 500);
+
+      await env.research
+        .prepare(`INSERT INTO tags (paper_id, tag) VALUES (?, ?)
+                  ON CONFLICT(paper_id, tag) DO NOTHING`)
+        .bind(row.id, tag)
+        .run();
+      return json({ ok: true, id: row.id, tag, created: true });
+    }
+
+    const id = parseInt(body.id, 10);
+    if (!Number.isFinite(id)) return json({ error: "id required" }, 400);
+
     if (action === "tag") {
       const tag = (body.tag || "").trim();
       if (!tag) return json({ error: "tag required" }, 400);

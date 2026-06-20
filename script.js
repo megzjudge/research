@@ -7,6 +7,15 @@ const elStatus     = document.getElementById("status");
 const elQ          = document.getElementById("q");
 const elNew        = document.getElementById("newtag");
 const elAdd        = document.getElementById("addbtn");
+const elStudyUrl   = document.getElementById("studyurl");
+const elStudyScan  = document.getElementById("studyscan");
+const elStudyForm  = document.getElementById("studyform");
+const elStudyTitle = document.getElementById("studytitle");
+const elStudyAuthor = document.getElementById("studyauthor");
+const elStudySnip  = document.getElementById("studysnip");
+const elStudyTag   = document.getElementById("studytag");
+const elStudySubmit = document.getElementById("studysubmit");
+const elStudyCancel = document.getElementById("studycancel");
 const elTrashLink  = document.getElementById("trashlink");
 const elTrashCount = document.getElementById("trashcount");
 const elLightbox   = document.getElementById("lightbox");
@@ -17,6 +26,7 @@ const pageOf = new Map();
 let view   = "sections";
 let authPw = null;
 let allTags = [];
+let studyLink = "";
 
 const RAIL_GROUPS = [
   {
@@ -203,6 +213,7 @@ async function loadSections() {
     const r = await fetch(`/api/sections?per=${FETCH}`);
     const { sections = [], trash_count = 0 } = await r.json();
     allTags = sections.map((s) => s.tag).sort((a, b) => a.localeCompare(b));
+    populateStudyTags();
     renderRail(sections, trash_count);
     renderAll(sections);
     elStatus.textContent = sections.length ? "" : "No constructs yet — add one on the left.";
@@ -698,6 +709,97 @@ async function addConstruct() {
 }
 elAdd.onclick = addConstruct;
 elNew.addEventListener("keydown", e => { if (e.key === "Enter") addConstruct(); });
+
+function populateStudyTags() {
+  if (!elStudyTag) return;
+  const cur = elStudyTag.value;
+  elStudyTag.innerHTML = `<option value="">choose a section…</option>` +
+    allTags.map((t) => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
+  if (cur && allTags.includes(cur)) elStudyTag.value = cur;
+}
+
+function hideStudyForm() {
+  if (!elStudyForm) return;
+  elStudyForm.hidden = true;
+  studyLink = "";
+  if (elStudyUrl) elStudyUrl.value = "";
+}
+
+async function scanStudy() {
+  const url = (elStudyUrl?.value || "").trim();
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url)) {
+    showToast("Enter a link starting with http:// or https://", false);
+    return;
+  }
+  elStudyScan.disabled = true;
+  elStudyScan.textContent = "…";
+  try {
+    const r = await fetch(`/api/scan?url=${encodeURIComponent(url)}`);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      showToast(data.error || "Scan failed.", false);
+      return;
+    }
+    studyLink = data.link || url;
+    elStudyTitle.value = data.title || "";
+    elStudyAuthor.value = data.authors || "";
+    elStudySnip.value = data.snippet || "";
+    populateStudyTags();
+    elStudyForm.hidden = false;
+    if (!data.title && !data.authors && !data.snippet) {
+      showToast("No metadata found — fill in the details manually.", false);
+    }
+  } catch {
+    showToast("Couldn't reach the scan service.", false);
+  } finally {
+    elStudyScan.disabled = false;
+    elStudyScan.textContent = "scan";
+  }
+}
+
+async function submitStudy(e) {
+  e.preventDefault();
+  const title = elStudyTitle.value.trim();
+  const authors = elStudyAuthor.value.trim();
+  const snippet = elStudySnip.value.trim();
+  const tag = elStudyTag.value.trim();
+  const link = studyLink || (elStudyUrl?.value || "").trim();
+  if (!title || !link || !tag) {
+    showToast("Title, link, and section are required.", false);
+    return;
+  }
+  elStudySubmit.disabled = true;
+  const r = await postWrite("/api/papers", {
+    action: "create",
+    title,
+    authors,
+    snippet,
+    link,
+    tag,
+  });
+  elStudySubmit.disabled = false;
+  if (r.status === 409) {
+    showToast("Another paper already has that link.", false);
+    return;
+  }
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    showToast(err.error || "Couldn't add the study.", false);
+    return;
+  }
+  hideStudyForm();
+  showToast("Study added.");
+  await loadSections();
+  location.hash = "#" + slug(tag);
+}
+
+elStudyScan?.addEventListener("click", scanStudy);
+elStudyUrl?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); scanStudy(); }
+});
+elStudyForm?.addEventListener("submit", submitStudy);
+elStudyCancel?.addEventListener("click", hideStudyForm);
 
 const railObserver = new IntersectionObserver((entries) => {
   for (const en of entries) {

@@ -14,10 +14,8 @@ export async function onRequestGet({ request }) {
 
   try {
     const meta = await scanUrl(target);
-    if (!meta.title && !meta.authors && !meta.snippet) {
-      return json({ error: "couldn't find metadata for that URL" }, 404);
-    }
-    return json(meta);
+    const found = !!(meta.title || meta.authors || meta.snippet);
+    return json({ ...meta, found });
   } catch (err) {
     return json({ error: String(err.message || err) }, 500);
   }

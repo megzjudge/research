@@ -52,6 +52,18 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .railnav li.rail-banner { list-style: none; font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); padding: 18px 0 6px; margin: 0; pointer-events: none; user-select: none; }
 .railnav li.rail-banner:first-child { padding-top: 0; }
 .addbox { display: flex; gap: 6px; }
+.addstudy { margin-bottom: 10px; }
+.studyform { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.studyform[hidden] { display: none; }
+.studylabel { display: flex; flex-direction: column; gap: 4px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: 0.02em; }
+.studylabel input, .studylabel textarea, .studylabel select { font-family: var(--mono); font-size: 12px; padding: 7px 8px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--card); color: var(--ink); width: 100%; resize: vertical; }
+.studylabel input:focus, .studylabel textarea:focus, .studylabel select:focus { outline: none; border-color: var(--accent); }
+.studyactions { display: flex; gap: 6px; }
+.studyactions button { flex: 1; font-family: var(--mono); font-size: 12px; padding: 7px 11px; cursor: pointer; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); border-radius: 3px; }
+.studyactions button:hover { background: var(--accent); border-color: var(--accent); }
+.studyactions #studycancel { background: transparent; color: var(--muted); border-color: var(--line-strong); }
+.studyactions #studycancel:hover { color: var(--ink); border-color: var(--line-strong); background: var(--card); }
+.studyhint { margin-bottom: 14px; }
 .addbox input { flex: 1; min-width: 0; font-family: var(--mono); font-size: 12px; padding: 7px 8px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--card); color: var(--ink); }
 .addbox input:focus { outline: none; border-color: var(--accent); }
 .addbox button { font-family: var(--mono); font-size: 12px; padding: 0 11px; cursor: pointer; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); border-radius: 3px; }

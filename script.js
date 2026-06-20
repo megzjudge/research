@@ -216,7 +216,7 @@ async function loadSections() {
     populateStudyTags();
     renderRail(sections, trash_count);
     renderAll(sections);
-    elStatus.textContent = sections.length ? "" : "No constructs yet — add one on the left.";
+    elStatus.textContent = sections.length ? "" : "No tags yet — add one on the left.";
   } catch (e) {
     elStatus.textContent = "Couldn't reach the database.";
   }
@@ -725,6 +725,16 @@ function hideStudyForm() {
   if (elStudyUrl) elStudyUrl.value = "";
 }
 
+function openStudyForm(url, data = {}) {
+  studyLink = data.link || url;
+  elStudyTitle.value = data.title || "";
+  elStudyAuthor.value = data.authors || "";
+  elStudySnip.value = data.snippet || "";
+  populateStudyTags();
+  elStudyForm.hidden = false;
+  elStudyTitle.focus();
+}
+
 async function scanStudy() {
   const url = (elStudyUrl?.value || "").trim();
   if (!url) return;
@@ -737,21 +747,18 @@ async function scanStudy() {
   try {
     const r = await fetch(`/api/scan?url=${encodeURIComponent(url)}`);
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      showToast(data.error || "Scan failed.", false);
+    if (r.ok) {
+      openStudyForm(url, data);
+      if (!data.found) {
+        showToast("Nothing found — enter the details manually.", false);
+      }
       return;
     }
-    studyLink = data.link || url;
-    elStudyTitle.value = data.title || "";
-    elStudyAuthor.value = data.authors || "";
-    elStudySnip.value = data.snippet || "";
-    populateStudyTags();
-    elStudyForm.hidden = false;
-    if (!data.title && !data.authors && !data.snippet) {
-      showToast("No metadata found — fill in the details manually.", false);
-    }
+    openStudyForm(url, {});
+    showToast(data.error || "Scan failed — enter the details manually.", false);
   } catch {
-    showToast("Couldn't reach the scan service.", false);
+    openStudyForm(url, {});
+    showToast("Couldn't scan — enter the details manually.", false);
   } finally {
     elStudyScan.disabled = false;
     elStudyScan.textContent = "scan";

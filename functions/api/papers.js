@@ -42,6 +42,8 @@ export async function onRequestGet({ request, env }) {
   if (status && STATUSES.includes(status)) {
     where.push(`p.status = ?`);
     binds.push(status);
+  } else if (url.searchParams.get("has_screenshot") === "1") {
+    where.push(`p.screenshot IS NOT NULL AND TRIM(p.screenshot) != ''`);
   } else {
     where.push(`p.status != 'trash'`);
   }
@@ -200,6 +202,42 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: true, id, screenshot });
     }
 
+    if (action === "delete_screenshot") {
+      const path = (body.path || "").trim();
+      if (!path || !path.startsWith("/images/")) {
+        return json({ error: "invalid screenshot path" }, 400);
+      }
+      const row = await env.research
+        .prepare(`SELECT screenshot FROM papers WHERE id = ?`)
+        .bind(id)
+        .first();
+      if (!row) return json({ error: "paper not found" }, 404);
+
+      const paths = parseScreenshots(row.screenshot);
+      if (!paths.includes(path)) {
+        return json({ error: "screenshot not on this paper" }, 404);
+      }
+
+      const remaining = paths.filter((p) => p !== path);
+      const screenshot = remaining.length ? remaining.join("|") : null;
+      await env.research
+        .prepare(`UPDATE papers SET screenshot = ? WHERE id = ?`)
+        .bind(screenshot, id)
+        .run();
+
+      if (env.GITHUB_TOKEN) {
+        const repo = env.GITHUB_REPO || "megzjudge/research";
+        const ghPath = path.replace(/^\//, "");
+        try {
+          await githubDelete(env.GITHUB_TOKEN, repo, ghPath, id);
+        } catch (e) {
+          console.log("GitHub delete failed (DB updated):", String(e));
+        }
+      }
+
+      return json({ ok: true, id, path, screenshot, deleted: true });
+    }
+
     const status = (body.status || "").trim();
     if (!STATUSES.includes(status)) {
       return json({ error: "status must be inbox|starred|trash" }, 400);
@@ -226,6 +264,58 @@ export async function onRequestPost({ request, env }) {
   } catch (err) {
     return json({ error: String(err) }, 500);
   }
+}
+
+function parseScreenshots(raw) {
+  if (!raw || !String(raw).trim()) return [];
+  const s = String(raw).trim();
+  if (s.startsWith("[")) {
+    try {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr)) {
+        return arr.map(String).map((p) => p.trim()).filter(Boolean);
+      }
+    } catch { /* fall through */ }
+  }
+  return s.split("|").map((p) => p.trim()).filter(Boolean);
+}
+
+async function githubDelete(token, repo, path, paperId) {
+  const existing = await githubGet(token, repo, path);
+  if (!existing?.sha) return;
+  const r = await fetch(
+    `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`,
+    {
+      method: "DELETE",
+      headers: { ...githubHeaders(token), "content-type": "application/json" },
+      body: JSON.stringify({
+        message: `delete screenshot paper ${paperId}`,
+        sha: existing.sha,
+      }),
+    }
+  );
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(`GitHub delete failed: ${r.status} ${t.slice(0, 200)}`);
+  }
+}
+
+async function githubGet(token, repo, path) {
+  const r = await fetch(
+    `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`,
+    { headers: githubHeaders(token) }
+  );
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`GitHub read failed: ${r.status}`);
+  return r.json();
+}
+
+function githubHeaders(token) {
+  return {
+    authorization: `Bearer ${token}`,
+    accept: "application/vnd.github+json",
+    "user-agent": "scholar-alerts-upload",
+  };
 }
 
 function mapPaper(r) {

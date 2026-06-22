@@ -175,7 +175,20 @@ export async function onRequestGet({ request, env }) {
       .prepare(`SELECT COUNT(*) AS n FROM papers WHERE status = 'trash'`)
       .first();
 
-    return json({ starred, sections, trash_count: trashRow ? trashRow.n : 0 });
+    const shotRows = (await env.research
+      .prepare(`SELECT screenshot FROM papers WHERE screenshot IS NOT NULL AND TRIM(screenshot) != ''`)
+      .all()).results || [];
+    let screenshot_count = 0;
+    for (const row of shotRows) {
+      screenshot_count += parseScreenshots(row.screenshot).length;
+    }
+
+    return json({
+      starred,
+      sections,
+      trash_count: trashRow ? trashRow.n : 0,
+      screenshot_count,
+    });
   } catch (err) {
     return json({ error: String(err) }, 500);
   }
@@ -215,6 +228,20 @@ export async function onRequestPost({ request, env }) {
   } catch (err) {
     return json({ error: String(err) }, 500);
   }
+}
+
+function parseScreenshots(raw) {
+  if (!raw || !String(raw).trim()) return [];
+  const s = String(raw).trim();
+  if (s.startsWith("[")) {
+    try {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr)) {
+        return arr.map(String).map((p) => p.trim()).filter(Boolean);
+      }
+    } catch { /* fall through */ }
+  }
+  return s.split("|").map((p) => p.trim()).filter(Boolean);
 }
 
 function json(obj, status = 200) {

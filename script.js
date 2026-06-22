@@ -18,6 +18,8 @@ const elStudySubmit = document.getElementById("studysubmit");
 const elStudyCancel = document.getElementById("studycancel");
 const elTrashLink  = document.getElementById("trashlink");
 const elTrashCount = document.getElementById("trashcount");
+const elShotsLink  = document.getElementById("shotslink");
+const elShotsCount = document.getElementById("shotscount");
 const elLightbox   = document.getElementById("lightbox");
 const elLightboxImg = document.getElementById("lightbox-img");
 const elToast      = document.getElementById("toast");
@@ -201,9 +203,20 @@ function updateTrashLink(count) {
   elTrashLink.hidden = count === 0;
 }
 
+function updateShotsLink(count) {
+  if (!elShotsLink || !elShotsCount) return;
+  elShotsCount.textContent = count;
+  elShotsLink.hidden = count === 0;
+}
+
 elTrashLink?.addEventListener("click", (e) => {
   e.preventDefault();
   runTrash();
+});
+
+elShotsLink?.addEventListener("click", (e) => {
+  e.preventDefault();
+  runScreenshots();
 });
 
 async function loadSections() {
@@ -211,10 +224,10 @@ async function loadSections() {
   elStatus.textContent = "loading…";
   try {
     const r = await fetch(`/api/sections?per=${FETCH}`);
-    const { sections = [], trash_count = 0 } = await r.json();
+    const { sections = [], trash_count = 0, screenshot_count = 0 } = await r.json();
     allTags = sections.map((s) => s.tag).sort((a, b) => a.localeCompare(b));
     populateStudyTags();
-    renderRail(sections, trash_count);
+    renderRail(sections, trash_count, screenshot_count);
     renderAll(sections);
     elStatus.textContent = sections.length ? "" : "No tags yet — add one on the left.";
   } catch (e) {
@@ -243,11 +256,12 @@ function sectionsInRailOrder(sections) {
   return out;
 }
 
-function renderRail(sections, trashCount) {
+function renderRail(sections, trashCount, screenshotCount) {
   elRail.innerHTML = "";
   const byTag = new Map(sections.map((s) => [s.tag, s]));
 
   updateTrashLink(trashCount);
+  updateShotsLink(screenshotCount);
 
   for (const group of RAIL_GROUPS) {
     const liBanner = document.createElement("li");
@@ -412,12 +426,19 @@ function showToast(msg, ok = true) {
   _toastTimer = setTimeout(() => { elToast.hidden = true; }, ok ? 2800 : 4200);
 }
 
+function imgSrc(path) {
+  if (!path) return "";
+  const base = path.split("?")[0];
+  const file = base.split("/").pop() || "img";
+  return `${base}?v=${encodeURIComponent(file)}`;
+}
+
 function shotHtml(p) {
   const shots = parseScreenshots(p.screenshot);
   if (!shots.length) return "";
   const btns = shots.map((src, i) =>
     `<button type="button" class="cardshot" data-lightbox="${esc(src)}" title="view screenshot ${i + 1}" aria-label="view screenshot ${i + 1}">
-      <img src="${esc(src)}" alt="" loading="lazy" />
+      <img src="${esc(imgSrc(src))}" alt="" loading="lazy" decoding="async" />
     </button>`
   ).join("");
   return `<div class="cardshots">${btns}</div>`;
@@ -485,6 +506,24 @@ function cardActs(p) {
 }
 
 elSections.addEventListener("click", async (e) => {
+  const delBtn = e.target.closest("[data-delshot]");
+  if (delBtn && view === "screenshots") {
+    const paperId = +delBtn.getAttribute("data-delshot");
+    const path = delBtn.getAttribute("data-shot-path");
+    if (!path || !paperId) return;
+    delBtn.disabled = true;
+    const r = await postWrite("/api/papers", { action: "delete_screenshot", id: paperId, path });
+    if (r && r.ok) {
+      showToast("Screenshot deleted.");
+      runScreenshots();
+    } else {
+      const err = await r.json().catch(() => ({}));
+      showToast(err.error || "Couldn't delete screenshot.", false);
+      delBtn.disabled = false;
+    }
+    return;
+  }
+
   const shot = e.target.closest("[data-lightbox]");
   if (shot) {
     openLightbox(shot.getAttribute("data-lightbox"));
@@ -567,7 +606,7 @@ elSections.addEventListener("click", async (e) => {
 
 function openLightbox(src) {
   if (!elLightbox || !elLightboxImg || !src) return;
-  elLightboxImg.src = src;
+  elLightboxImg.src = imgSrc(src);
   elLightbox.hidden = false;
   document.body.classList.add("lightbox-open");
 }
@@ -639,6 +678,7 @@ document.addEventListener("click", (e) => {
 function refresh() {
   const q = elQ.value.trim();
   if (view === "trash") runTrash();
+  else if (view === "screenshots") runScreenshots();
   else if (q) runSearch(q);
   else loadSections();
 }
@@ -695,6 +735,42 @@ async function runTrash() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (e) {
     elStatus.textContent = "Couldn't load trash.";
+  }
+}
+
+function screenshotItemHtml(paperId, title, src) {
+  return `<article class="shotitem" data-shot-paper="${paperId}" data-shot-path="${esc(src)}">
+    <button type="button" class="shotthumb" data-lightbox="${esc(src)}" aria-label="preview screenshot">
+      <img src="${esc(imgSrc(src))}" alt="" loading="lazy" decoding="async" />
+    </button>
+    <p class="shottitle">${esc(title)}</p>
+    <button type="button" class="shotdel" data-delshot="${paperId}" data-shot-path="${esc(src)}" title="delete screenshot" aria-label="delete screenshot">🗑</button>
+  </article>`;
+}
+
+async function runScreenshots() {
+  view = "screenshots";
+  elStatus.textContent = "loading screenshots…";
+  try {
+    const r = await fetch("/api/papers?has_screenshot=1&limit=500");
+    const { papers = [] } = await r.json();
+    const items = [];
+    for (const p of papers) {
+      for (const src of parseScreenshots(p.screenshot)) {
+        items.push(screenshotItemHtml(p.id, p.title, src));
+      }
+    }
+    elSections.innerHTML = `
+      <section class="section">
+        <div class="sechead"><h2>Screenshots</h2><span class="count">${items.length}</span></div>
+        <p class="shotshint">Review uploaded images. Click 🗑 to remove one from the site and database.</p>
+        <div class="shotsgrid">${items.join("")}</div>
+      </section>`;
+    elStatus.textContent = items.length ? "" : "No screenshots uploaded yet.";
+    updateShotsLink(items.length);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) {
+    elStatus.textContent = "Couldn't load screenshots.";
   }
 }
 

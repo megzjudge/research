@@ -70,6 +70,7 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .addbox button:hover { background: var(--accent); border-color: var(--accent); }
 .addhint { font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin: 8px 0 0; line-height: 1.4; }
 .trashlink { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--accent-bar-soft); text-decoration: none; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.shotslink { margin-top: 8px; padding-top: 0; border-top: none; }
 @media (min-width: 861px) { .trashlink { margin-top: 16px; } }
 .trashlink:hover { color: var(--accent); }
 .trashlink .c { margin-left: auto; color: var(--faint); }
@@ -195,3 +196,13 @@ body.lightbox-open { overflow: hidden; }
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 110; font-family: var(--mono); font-size: 12px; color: var(--paper); background: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 10px 16px; box-shadow: 0 8px 28px rgba(0,0,0,.35); pointer-events: none; }
 .toast.toast-err { background: #3d2028; border-color: #c96; color: var(--ink); }
 .toast[hidden] { display: none; }
+
+.shotshint { font-family: var(--mono); font-size: 12px; color: var(--muted); margin: 0 0 16px; }
+.shotsgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+.shotitem { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--card); border: 1px solid var(--accent-bar-soft); border-radius: 5px; }
+.shotthumb { padding: 0; border: none; background: transparent; cursor: pointer; border-radius: 3px; overflow: hidden; line-height: 0; }
+.shotthumb img { width: 100%; height: 110px; object-fit: cover; display: block; background: var(--ink); }
+.shottitle { font-size: 11px; line-height: 1.35; color: var(--muted); margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.shotdel { align-self: flex-start; font-size: 14px; line-height: 1; padding: 4px 6px; background: transparent; border: 1px solid var(--accent-bar-soft); border-radius: 4px; cursor: pointer; color: var(--muted); }
+.shotdel:hover { color: var(--accent); border-color: var(--accent); }
+.shotdel:disabled { opacity: .45; cursor: default; }

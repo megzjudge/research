@@ -41,7 +41,7 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Deviancy",
-    tags: ["Dark Triad", "ADHD and Nicotine", "Bisexuality", "Sociosexuality", "High Sex Drive"],
+    tags: ["Dark Triad", "ADHD", "Bisexuality", "Sociosexuality", "High Sex Drive"],
   },
   {
     banner: "Breeding",
@@ -90,7 +90,8 @@ const TERM_ALIASES = {
   "philosophy of religion": "Experimental Philosophy",
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",
-  "adhd and nicotine": "ADHD and Nicotine",
+  "adhd and nicotine": "ADHD",
+  "adhd": "ADHD",
   "high sex drive": "High Sex Drive",
   "iq": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
@@ -133,7 +134,7 @@ const CANONICAL_TAGS = [
   "Experimental Philosophy",
   "Followed Authors",
   "Intelligence Quotient",
-  "ADHD and Nicotine",
+  "ADHD",
   "High Sex Drive",
   "Bisexuality",
   "Sociosexuality",
@@ -189,6 +190,7 @@ const TAG_DISPLAY_LABELS = {
   "Mate Choice": "Mate Choice / Assortative Mating / Intersexual Selection",
   "Sunlight": "Sunlight / Red Light / Vitamin D / Blue Light",
   "Śūnyatā": "Śūnyatā / Śūnya",
+  "ADHD": "ADHD / ADHD and Nicotine",
 };
 
 // Rail-only short labels — shown in sidebar but NOT in the main content heading

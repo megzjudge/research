@@ -20,7 +20,7 @@
 * { box-sizing: border-box; }
 
 /* Thin accent scrollbars (Firefox + WebKit) */
-.rail, .railnav, .content, .tagmenu { scrollbar-color: var(--accent-bar) transparent; }
+.rail, .railnav, .content, .tagmenu { scrollbar-width: thin; scrollbar-color: var(--accent-bar) transparent; }
 .rail::-webkit-scrollbar, .railnav::-webkit-scrollbar, .content::-webkit-scrollbar, .tagmenu::-webkit-scrollbar { width: var(--scrollbar-size); }
 .content::-webkit-scrollbar, .tagmenu::-webkit-scrollbar { height: var(--scrollbar-size); }
 .rail::-webkit-scrollbar-track, .railnav::-webkit-scrollbar-track, .content::-webkit-scrollbar-track, .tagmenu::-webkit-scrollbar-track { background: transparent; }

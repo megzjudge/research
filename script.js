@@ -49,7 +49,7 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Health",
-    tags: ["Sunlight", "Health (overall)", "Essential Oil"],
+    tags: ["Sunlight", "Meditation", "Health (overall)", "Essential Oil"],
   },
   {
     banner: "Specifics",
@@ -109,6 +109,7 @@ const TERM_ALIASES = {
   "essential oil": "Essential Oil",
   "health": "Health (overall)",
   "health (overall)": "Health (overall)",
+  "meditation": "Meditation",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",
@@ -140,6 +141,7 @@ const CANONICAL_TAGS = [
   "Health (overall)",
   "Essential Oil",
   "Sunlight",
+  "Meditation",
 ];
 
 function canonical(tag) {

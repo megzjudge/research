@@ -61,7 +61,7 @@ const KNOWN_TERMS = [
   "adhd AND nicotine", "ADHD and Nicotine",
   "Assortative Mating", "Intersexual Selection", "Mate Choice",
   "Genetics", "Attraction", "Intrasexual Competition",
-  "Health (overall)", "Essential Oil", "Sunlight", "Red Light", "Vitamin D", "Blue Light",
+  "Health (overall)", "Essential Oil", "Sunlight", "Red Light", "Vitamin D", "Blue Light", "Meditation",
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -116,6 +116,7 @@ const TERM_ALIASES = {
   "essential oil": "Essential Oil",
   "health": "Health (overall)",
   "health (overall)": "Health (overall)",
+  "meditation": "Meditation",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",

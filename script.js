@@ -32,8 +32,8 @@ let studyLink = "";
 
 const RAIL_GROUPS = [
   {
-    banner: "Personality",
-    tags: ["Big Five", "Big Ten", "MBTI", "HEXACO", "Indian Psychology"],
+    banner: "Psychology",
+    tags: ["Big Five", "Big Ten", "MBTI", "HEXACO", "Indian Psychology", "Intelligence Quotient"],
   },
   {
     banner: "Deviancy",
@@ -48,8 +48,12 @@ const RAIL_GROUPS = [
     tags: ["Health (overall)", "Essential Oil", "Sunlight"],
   },
   {
+    banner: "Philosophy",
+    tags: ["Experimental Philosophy"],
+  },
+  {
     banner: "Specifics",
-    tags: ["Experimental Philosophy", "Followed Authors", "Intelligence Quotient"],
+    tags: ["Followed Authors"],
   },
 ];
 

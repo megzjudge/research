@@ -50,9 +50,7 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .railnav li a:hover, .railnav li a.active { color: var(--accent); background: var(--accent-soft); }
 .railnav li a .c { color: var(--faint); flex-shrink: 0; margin-top: 1px; }
 .railnav li.rail-banner { list-style: none; font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); padding: 18px 0 6px; margin: 0; pointer-events: none; user-select: none; }
-.railnav li.rail-banner:first-child { padding-top: 0; }
-.railnav li.rail-banner-large { font-size: 13px; font-weight: 700; letter-spacing: 0.03em; text-transform: none; color: var(--ink); padding-top: 24px; padding-bottom: 8px; border-top: 1px solid var(--accent-bar-soft); margin-top: 6px; }
-.addbox { display: flex; gap: 6px; }
+.railnav li.rail-banner:first-child { padding-top: 0; }.addbox { display: flex; gap: 6px; }
 .addstudy { margin-bottom: 10px; }
 .studyform { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
 .studyform[hidden] { display: none; }

@@ -41,12 +41,7 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Specifics",
-    tags: ["Experimental Philosophy", "Followed Authors", "Intelligence Quotient"],
-  },
-  {
-    banner: "Mate Choice",
-    large: true,
-    tags: ["Assortative Mating", "Intersexual Selection"],
+    tags: ["Experimental Philosophy", "Followed Authors", "Intelligence Quotient", "Mate Choice"],
   },
 ];
 
@@ -88,8 +83,8 @@ const TERM_ALIASES = {
   "iq": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
   "intelligence quotient": "Intelligence Quotient",
-  "assortative mating": "Assortative Mating",
-  "intersexual selection": "Intersexual Selection",
+  "assortative mating": "Mate Choice",
+  "intersexual selection": "Mate Choice",
   "mate choice": "Mate Choice",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
@@ -115,8 +110,7 @@ const CANONICAL_TAGS = [
   "High Sex Drive",
   "Bisexuality",
   "Sociosexuality",
-  "Assortative Mating",
-  "Intersexual Selection",
+  "Mate Choice",
 ];
 
 function canonical(tag) {
@@ -157,6 +151,7 @@ const ACRONYMS = new Set(["adhd","mbti","hexaco","ocd","ptsd","iq","eq","big5","
 
 const TAG_DISPLAY_LABELS = {
   "Dark Triad": "Dark Triad / Dark Tetrad / Machiavellianism",
+  "Mate Choice": "Mate Choice / Assortative Mating / Intersexual Selection",
 };
 
 function sectionLabel(s) {
@@ -275,7 +270,7 @@ function renderRail(sections, trashCount, screenshotCount) {
 
   for (const group of RAIL_GROUPS) {
     const liBanner = document.createElement("li");
-    liBanner.className = group.large ? "rail-banner rail-banner-large" : "rail-banner";
+    liBanner.className = "rail-banner";
     liBanner.textContent = group.banner;
     elRail.appendChild(liBanner);
 

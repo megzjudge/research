@@ -33,7 +33,7 @@ let studyLink = "";
 const RAIL_GROUPS = [
   {
     banner: "Philosophy",
-    tags: ["Experimental Philosophy"],
+    tags: ["Experimental Philosophy", "Meditation", "Śūnyatā"],
   },
   {
     banner: "Psychology",
@@ -49,7 +49,7 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Health",
-    tags: ["Sunlight", "Meditation", "Health (overall)", "Essential Oil"],
+    tags: ["Sunlight", "Health (overall)", "Essential Oil"],
   },
   {
     banner: "Specifics",
@@ -110,6 +110,10 @@ const TERM_ALIASES = {
   "health": "Health (overall)",
   "health (overall)": "Health (overall)",
   "meditation": "Meditation",
+  "śūnyatā": "Śūnyatā",
+  "śūnya": "Śūnyatā",
+  "sunyata": "Śūnyatā",
+  "sunya": "Śūnyatā",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",
@@ -142,6 +146,7 @@ const CANONICAL_TAGS = [
   "Essential Oil",
   "Sunlight",
   "Meditation",
+  "Śūnyatā",
 ];
 
 function canonical(tag) {
@@ -184,6 +189,7 @@ const TAG_DISPLAY_LABELS = {
   "Dark Triad": "Dark Triad / Dark Tetrad / Machiavellianism",
   "Mate Choice": "Mate Choice / Assortative Mating / Intersexual Selection",
   "Sunlight": "Sunlight / Red Light / Vitamin D / Blue Light",
+  "Śūnyatā": "Śūnyatā / Śūnya",
 };
 
 // Rail-only short labels — shown in sidebar but NOT in the main content heading

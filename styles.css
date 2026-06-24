@@ -12,7 +12,7 @@
   --accent-bar-soft: rgba(182, 156, 240, 0.35);
   --serif: Georgia, "Times New Roman", Times, serif;
   --mono:  ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
-  --scrollbar-size: 6px;
+  --scrollbar-size: 2px;
   --scrollbar-track: rgba(22, 21, 26, 0.35);
   --scrollbar-thumb: rgba(182, 156, 240, 0.45);
   --scrollbar-thumb-hover: rgba(182, 156, 240, 0.85);

@@ -20,7 +20,7 @@
 * { box-sizing: border-box; }
 
 /* Thin accent scrollbars (Firefox + WebKit) */
-.rail, .railnav, .content, .tagmenu { scrollbar-width: thin; scrollbar-color: var(--accent-bar) transparent; }
+.rail, .railnav, .content, .tagmenu { scrollbar-color: var(--accent-bar) transparent; }
 .rail::-webkit-scrollbar, .railnav::-webkit-scrollbar, .content::-webkit-scrollbar, .tagmenu::-webkit-scrollbar { width: var(--scrollbar-size); }
 .content::-webkit-scrollbar, .tagmenu::-webkit-scrollbar { height: var(--scrollbar-size); }
 .rail::-webkit-scrollbar-track, .railnav::-webkit-scrollbar-track, .content::-webkit-scrollbar-track, .tagmenu::-webkit-scrollbar-track { background: transparent; }
@@ -65,7 +65,7 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .studyhint { margin-bottom: 14px; }
 .addbox input { flex: 1; min-width: 0; font-family: var(--mono); font-size: 12px; padding: 7px 8px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--card); color: var(--ink); }
 .addbox input:focus { outline: none; border-color: var(--accent); }
-.addbox button { font-family: var(--mono); font-size: 12px; padding: 0 11px; cursor: pointer; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); border-radius: 3px; }
+.addbox button { font-family: var(--mono); font-size: 12px; padding: 0 11px; min-width: 52px; cursor: pointer; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); border-radius: 3px; }
 .addbox button:hover { background: var(--accent); border-color: var(--accent); }
 .addhint { font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin: 8px 0 0; line-height: 1.4; }
 .trashlink { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--accent-bar-soft); text-decoration: none; font-family: var(--mono); font-size: 12px; color: var(--muted); }

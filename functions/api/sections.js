@@ -39,7 +39,8 @@ const TERM_ALIASES = {
   "philosophy of religion": "Experimental Philosophy",
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",
-  "adhd and nicotine": "ADHD and Nicotine",
+  "adhd and nicotine": "ADHD",
+  "adhd": "ADHD",
   "high sex drive": "High Sex Drive",
   "iq": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
@@ -57,7 +58,7 @@ const TERM_ALIASES = {
 const CANONICAL_TAGS = [
   "Big Five", "Big Ten", "MBTI", "HEXACO", "Dark Triad", "Indian Psychology",
   "Experimental Philosophy", "Followed Authors", "Intelligence Quotient",
-  "ADHD and Nicotine", "High Sex Drive", "Bisexuality", "Sociosexuality",
+  "ADHD", "High Sex Drive", "Bisexuality", "Sociosexuality",
 ];
 
 function canonicalTag(tag) {

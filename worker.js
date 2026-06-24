@@ -60,6 +60,8 @@ const KNOWN_TERMS = [
   "Intelligence Quotient", "Intelligent Quotient", "IQ",
   "adhd AND nicotine", "ADHD and Nicotine",
   "Assortative Mating", "Intersexual Selection", "Mate Choice",
+  "Genetics", "Attraction", "Intrasexual Competition (bullying)", "Intrasexual Competition",
+  "Health (overall)", "Essential Oil", "Sunlight", "Red Light", "Vitamin D", "Blue Light",
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -103,6 +105,17 @@ const TERM_ALIASES = {
   "assortative mating": "Mate Choice",
   "intersexual selection": "Mate Choice",
   "mate choice": "Mate Choice",
+  "genetics": "Genetics",
+  "attraction": "Attraction",
+  "intrasexual competition": "Intrasexual Competition (bullying)",
+  "intrasexual competition (bullying)": "Intrasexual Competition (bullying)",
+  "sunlight": "Sunlight",
+  "red light": "Sunlight",
+  "vitamin d": "Sunlight",
+  "blue light": "Sunlight",
+  "essential oil": "Essential Oil",
+  "health": "Health (overall)",
+  "health (overall)": "Health (overall)",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",

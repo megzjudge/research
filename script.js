@@ -40,8 +40,16 @@ const RAIL_GROUPS = [
     tags: ["Dark Triad", "ADHD and Nicotine", "Bisexuality", "Sociosexuality", "High Sex Drive"],
   },
   {
+    banner: "Breeding",
+    tags: ["Genetics", "Mate Choice", "Attraction", "Intrasexual Competition (bullying)"],
+  },
+  {
+    banner: "Health",
+    tags: ["Health (overall)", "Essential Oil", "Sunlight"],
+  },
+  {
     banner: "Specifics",
-    tags: ["Experimental Philosophy", "Followed Authors", "Intelligence Quotient", "Mate Choice"],
+    tags: ["Experimental Philosophy", "Followed Authors", "Intelligence Quotient"],
   },
 ];
 
@@ -86,6 +94,17 @@ const TERM_ALIASES = {
   "assortative mating": "Mate Choice",
   "intersexual selection": "Mate Choice",
   "mate choice": "Mate Choice",
+  "genetics": "Genetics",
+  "attraction": "Attraction",
+  "intrasexual competition": "Intrasexual Competition (bullying)",
+  "intrasexual competition (bullying)": "Intrasexual Competition (bullying)",
+  "sunlight": "Sunlight",
+  "red light": "Sunlight",
+  "vitamin d": "Sunlight",
+  "blue light": "Sunlight",
+  "essential oil": "Essential Oil",
+  "health": "Health (overall)",
+  "health (overall)": "Health (overall)",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",
@@ -111,6 +130,12 @@ const CANONICAL_TAGS = [
   "Bisexuality",
   "Sociosexuality",
   "Mate Choice",
+  "Genetics",
+  "Attraction",
+  "Intrasexual Competition (bullying)",
+  "Health (overall)",
+  "Essential Oil",
+  "Sunlight",
 ];
 
 function canonical(tag) {
@@ -152,6 +177,12 @@ const ACRONYMS = new Set(["adhd","mbti","hexaco","ocd","ptsd","iq","eq","big5","
 const TAG_DISPLAY_LABELS = {
   "Dark Triad": "Dark Triad / Dark Tetrad / Machiavellianism",
   "Mate Choice": "Mate Choice / Assortative Mating / Intersexual Selection",
+  "Sunlight": "Sunlight / Red Light / Vitamin D / Blue Light",
+};
+
+// Rail-only short labels — shown in sidebar but NOT in the main content heading
+const RAIL_SHORT_LABELS = {
+  "Intrasexual Competition (bullying)": "Intrasexual Competition",
 };
 
 function sectionLabel(s) {
@@ -278,7 +309,8 @@ function renderRail(sections, trashCount, screenshotCount) {
       const s = byTag.get(tag);
       if (!s || s.hidden) continue;
       const li = document.createElement("li");
-      li.innerHTML = `<a href="#${slug(s.tag)}"><span>${prettyLabel(sectionLabel(s))}</span><span class="c">${s.count}</span></a>`;
+      const railLabel = RAIL_SHORT_LABELS[s.tag] ? prettyLabel(RAIL_SHORT_LABELS[s.tag]) : prettyLabel(sectionLabel(s));
+      li.innerHTML = `<a href="#${slug(s.tag)}"><span>${railLabel}</span><span class="c">${s.count}</span></a>`;
       elRail.appendChild(li);
     }
   }
@@ -287,7 +319,8 @@ function renderRail(sections, trashCount, screenshotCount) {
   for (const s of sections) {
     if (s.hidden || grouped.has(s.tag) || grouped.has(canonical(s.tag))) continue;
     const li = document.createElement("li");
-    li.innerHTML = `<a href="#${slug(s.tag)}"><span>${prettyLabel(sectionLabel(s))}</span><span class="c">${s.count}</span></a>`;
+    const railLabel = RAIL_SHORT_LABELS[s.tag] ? prettyLabel(RAIL_SHORT_LABELS[s.tag]) : prettyLabel(sectionLabel(s));
+    li.innerHTML = `<a href="#${slug(s.tag)}"><span>${railLabel}</span><span class="c">${s.count}</span></a>`;
     elRail.appendChild(li);
   }
 }

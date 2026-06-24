@@ -32,6 +32,10 @@ let studyLink = "";
 
 const RAIL_GROUPS = [
   {
+    banner: "Philosophy",
+    tags: ["Experimental Philosophy"],
+  },
+  {
     banner: "Psychology",
     tags: ["Big Five", "Big Ten", "MBTI", "HEXACO", "Indian Psychology", "Intelligence Quotient"],
   },
@@ -46,10 +50,6 @@ const RAIL_GROUPS = [
   {
     banner: "Health",
     tags: ["Health (overall)", "Essential Oil", "Sunlight"],
-  },
-  {
-    banner: "Philosophy",
-    tags: ["Experimental Philosophy"],
   },
   {
     banner: "Specifics",

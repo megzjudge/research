@@ -61,7 +61,10 @@ const KNOWN_TERMS = [
   "adhd AND nicotine", "ADHD and Nicotine",
   "Assortative Mating", "Intersexual Selection", "Mate Choice",
   "Genetics", "Attraction", "Intrasexual Competition",
-  "Health (overall)", "Essential Oil", "Sunlight", "Red Light", "Vitamin D", "Blue Light", "Meditation",
+  "Health (overall)", "Essential Oil",
+  "Sunlight OR Red Light OR Vitamin D OR Blue Light", "Sunlight", "Red Light", "Vitamin D", "Blue Light",
+  "Meditation",
+  '"Śūnyatā" OR "Śūnya"', "Śūnyatā OR Śūnya", "Śūnyatā", "Śūnya",
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -108,7 +111,7 @@ const TERM_ALIASES = {
   "genetics": "Genetics",
   "attraction": "Attraction",
   "intrasexual competition": "Intrasexual Competition",
-  "intrasexual competition (bullying)": "Intrasexual Competition",
+  "sunlight or red light or vitamin d or blue light": "Sunlight",
   "sunlight": "Sunlight",
   "red light": "Sunlight",
   "vitamin d": "Sunlight",
@@ -117,6 +120,12 @@ const TERM_ALIASES = {
   "health": "Health (overall)",
   "health (overall)": "Health (overall)",
   "meditation": "Meditation",
+  '"śūnyatā" or "śūnya"': "Śūnyatā",
+  "śūnyatā or śūnya": "Śūnyatā",
+  "śūnyatā": "Śūnyatā",
+  "śūnya": "Śūnyatā",
+  "sunyata": "Śūnyatā",
+  "sunya": "Śūnyatā",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",

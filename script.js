@@ -33,7 +33,7 @@ let studyLink = "";
 const RAIL_GROUPS = [
   {
     banner: "Noetics",
-    tags: ["Experimental Philosophy", "Meditation", "Śūnyatā"],
+    tags: ["Experimental Philosophy", "Śūnyatā", "Meditation"],
   },
   {
     banner: "Psychology",
@@ -101,7 +101,6 @@ const TERM_ALIASES = {
   "genetics": "Genetics",
   "attraction": "Attraction",
   "intrasexual competition": "Intrasexual Competition",
-  "intrasexual competition (bullying)": "Intrasexual Competition",
   "sunlight": "Sunlight",
   "red light": "Sunlight",
   "vitamin d": "Sunlight",

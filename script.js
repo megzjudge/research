@@ -944,3 +944,4 @@ const railObserver = new IntersectionObserver((entries) => {
 }, { rootMargin: "-10% 0px -80% 0px" });
 
 loadSections();
+

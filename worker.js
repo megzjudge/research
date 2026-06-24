@@ -60,7 +60,7 @@ const KNOWN_TERMS = [
   "Intelligence Quotient", "Intelligent Quotient", "IQ",
   "adhd AND nicotine", "ADHD and Nicotine",
   "Assortative Mating", "Intersexual Selection", "Mate Choice",
-  "Genetics", "Attraction", "Intrasexual Competition (bullying)", "Intrasexual Competition",
+  "Genetics", "Attraction", "Intrasexual Competition",
   "Health (overall)", "Essential Oil", "Sunlight", "Red Light", "Vitamin D", "Blue Light",
 ];
 
@@ -107,8 +107,8 @@ const TERM_ALIASES = {
   "mate choice": "Mate Choice",
   "genetics": "Genetics",
   "attraction": "Attraction",
-  "intrasexual competition": "Intrasexual Competition (bullying)",
-  "intrasexual competition (bullying)": "Intrasexual Competition (bullying)",
+  "intrasexual competition": "Intrasexual Competition",
+  "intrasexual competition (bullying)": "Intrasexual Competition",
   "sunlight": "Sunlight",
   "red light": "Sunlight",
   "vitamin d": "Sunlight",

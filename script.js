@@ -37,7 +37,7 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Psychology",
-    tags: ["Big Five", "Big Ten", "MBTI", "HEXACO", "Indian Psychology", "Intelligence Quotient"],
+    tags: ["Intelligence Quotient", "Big Five", "Big Ten", "MBTI", "HEXACO", "Indian Psychology"],
   },
   {
     banner: "Deviancy",
@@ -45,11 +45,11 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Breeding",
-    tags: ["Genetics", "Mate Choice", "Attraction", "Intrasexual Competition (bullying)"],
+    tags: ["Mate Choice", "Intrasexual Competition", "Attraction", "Genetics"],
   },
   {
     banner: "Health",
-    tags: ["Health (overall)", "Essential Oil", "Sunlight"],
+    tags: ["Sunlight", "Health (overall)", "Essential Oil"],
   },
   {
     banner: "Specifics",
@@ -100,8 +100,8 @@ const TERM_ALIASES = {
   "mate choice": "Mate Choice",
   "genetics": "Genetics",
   "attraction": "Attraction",
-  "intrasexual competition": "Intrasexual Competition (bullying)",
-  "intrasexual competition (bullying)": "Intrasexual Competition (bullying)",
+  "intrasexual competition": "Intrasexual Competition",
+  "intrasexual competition (bullying)": "Intrasexual Competition",
   "sunlight": "Sunlight",
   "red light": "Sunlight",
   "vitamin d": "Sunlight",
@@ -136,7 +136,7 @@ const CANONICAL_TAGS = [
   "Mate Choice",
   "Genetics",
   "Attraction",
-  "Intrasexual Competition (bullying)",
+  "Intrasexual Competition",
   "Health (overall)",
   "Essential Oil",
   "Sunlight",
@@ -185,9 +185,7 @@ const TAG_DISPLAY_LABELS = {
 };
 
 // Rail-only short labels — shown in sidebar but NOT in the main content heading
-const RAIL_SHORT_LABELS = {
-  "Intrasexual Competition (bullying)": "Intrasexual Competition",
-};
+const RAIL_SHORT_LABELS = {};
 
 function sectionLabel(s) {
   return TAG_DISPLAY_LABELS[s?.tag] || s?.label || s?.tag || "";

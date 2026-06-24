@@ -59,6 +59,7 @@ const KNOWN_TERMS = [
   "Rupert Sheldrake", "Emil Kirkegaard",
   "Intelligence Quotient", "Intelligent Quotient", "IQ",
   "adhd AND nicotine", "ADHD and Nicotine",
+  "Assortative Mating", "Intersexual Selection", "Mate Choice",
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -99,6 +100,9 @@ const TERM_ALIASES = {
   "iq": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
   "intelligence quotient": "Intelligence Quotient",
+  "assortative mating": "Assortative Mating",
+  "intersexual selection": "Intersexual Selection",
+  "mate choice": "Mate Choice",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",

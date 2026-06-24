@@ -43,6 +43,11 @@ const RAIL_GROUPS = [
     banner: "Specifics",
     tags: ["Experimental Philosophy", "Followed Authors", "Intelligence Quotient"],
   },
+  {
+    banner: "Mate Choice",
+    large: true,
+    tags: ["Assortative Mating", "Intersexual Selection"],
+  },
 ];
 
 // Keep in sync with worker.js
@@ -83,6 +88,9 @@ const TERM_ALIASES = {
   "iq": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
   "intelligence quotient": "Intelligence Quotient",
+  "assortative mating": "Assortative Mating",
+  "intersexual selection": "Intersexual Selection",
+  "mate choice": "Mate Choice",
   "industriousness and orderliness": "Big Ten",
   "intellect and aesthetics": "Big Ten",
   "intellect and openness": "Big Ten",
@@ -107,6 +115,8 @@ const CANONICAL_TAGS = [
   "High Sex Drive",
   "Bisexuality",
   "Sociosexuality",
+  "Assortative Mating",
+  "Intersexual Selection",
 ];
 
 function canonical(tag) {
@@ -265,7 +275,7 @@ function renderRail(sections, trashCount, screenshotCount) {
 
   for (const group of RAIL_GROUPS) {
     const liBanner = document.createElement("li");
-    liBanner.className = "rail-banner";
+    liBanner.className = group.large ? "rail-banner rail-banner-large" : "rail-banner";
     liBanner.textContent = group.banner;
     elRail.appendChild(liBanner);
 

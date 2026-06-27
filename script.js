@@ -33,7 +33,7 @@ let studyLink = "";
 const RAIL_GROUPS = [
   {
     banner: "Noetics",
-    tags: ["Experimental Philosophy", "Śūnyatā", "Meditation"],
+    tags: ["Experimental Philosophy", "Śūnyatā", "Meditation", "Dreams"],
   },
   {
     banner: "Psychology",
@@ -155,6 +155,12 @@ const TERM_ALIASES = {
   "compassion and politeness": "Big Ten",
   "industriousness": "Big Ten",
   "testosterone": "Testosterone",
+  "dreams": "Dreams",
+  "dreams AND consciousness": "Dreams",
+  "": "",
+  "": "",
+  "": "",
+  "": "",
 };
 
 const CANONICAL_TAGS = [
@@ -181,6 +187,7 @@ const CANONICAL_TAGS = [
   "Meditation",
   "Śūnyatā",
   "Testosterone",
+  "Dreams",
 ];
 
 function canonical(tag) {

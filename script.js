@@ -91,6 +91,7 @@ const TERM_ALIASES = {
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",
   "paul eastwick": "Followed Authors",
+  "noah carl": "Followed Authors",
   "adhd and nicotine": "ADHD",
   "adhd": "ADHD",
   "high sex drive": "High Sex Drive",

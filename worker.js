@@ -56,7 +56,7 @@ const KNOWN_TERMS = [
   "HEXACO", "Sociosexuality", "high sex drive",
   "Bisexual women", "Bisexuality", "Bisexual",
   "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Language", "Philosophy of Religion",
-  "Rupert Sheldrake", "Emil Kirkegaard", "Paul Eastwick", "Noah Carl"
+  "Rupert Sheldrake", "Emil Kirkegaard", "Paul Eastwick", "Noah Carl", "Diana Fleischman"
   "Intelligence Quotient", "Intelligent Quotient", "IQ",
   "adhd AND nicotine", "ADHD and Nicotine", "ADHD",
   "Assortative Mating", "Intersexual Selection", "Mate Choice",
@@ -100,6 +100,7 @@ const TERM_ALIASES = {
   "philosophy of religion": "Experimental Philosophy",
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",
+  "diana fleischman": "Followed Authors",
   "adhd and nicotine": "ADHD",
   "adhd": "ADHD",
   "high sex drive": "High Sex Drive",

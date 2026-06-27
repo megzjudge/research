@@ -92,6 +92,7 @@ const TERM_ALIASES = {
   "emil kirkegaard": "Followed Authors",
   "paul eastwick": "Followed Authors",
   "noah carl": "Followed Authors",
+  "diana fleischman": "Followed Authors",
   "adhd and nicotine": "ADHD",
   "adhd": "ADHD",
   "high sex drive": "High Sex Drive",

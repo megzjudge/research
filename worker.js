@@ -168,6 +168,12 @@ const TERM_ALIASES = {
   "compassion and politeness": "Big Ten",
   "industriousness": "Big Ten",
   "testosterone": "Testosterone",
+  "dreams": "Dreams",
+  "dreams AND consciousness": "Dreams",
+  "": "Dreams",
+  "": "Dreams",
+  "": "Dreams",
+  "": "Dreams",
 };
 
 // Sidebar section tags — canonical() normalizes case variants to these.

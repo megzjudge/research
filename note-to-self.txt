@@ -1,0 +1,20 @@
+- Open website
+Add new primary search term on the website in tags section.
+
+- Open Cloudflare > Domains > Emails.
+Change email-routing in cloudflare email.
+
+- Google Scholar
+Go to scholar and put in new search terms > create alert.
+
+- Open D1.
+- Open Github repository.
+- Open Worker (research-emails) not Pages (research) > Edit
+
+In the D1 > Sections > add into label the multiple tags getting merged.
+In the Worker > Copy in new worker.js when finished editing it.
+In Github > , , ,
+
+- sections.js: TERM_ALIASES and CANONICAL_TAGS (duplicate the added into the other two files).
+- script.js: Add term somewhere into RAIL_GROUPS, TERM_ALIASES and CANONICAL_TAGS.
+- worker.js: update KNOWN_TERMS, TERM_ALIASES and CANONICAL_TAGS in worker.js and the file in the Worker (you can delete the file in Github).

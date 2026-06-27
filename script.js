@@ -154,6 +154,7 @@ const TERM_ALIASES = {
   "enthusiasm and assertiveness": "Big Ten",
   "compassion and politeness": "Big Ten",
   "industriousness": "Big Ten",
+  "testosterone": "Testosterone",
 };
 
 const CANONICAL_TAGS = [

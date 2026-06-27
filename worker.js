@@ -57,7 +57,7 @@ const KNOWN_TERMS = [
   "Bisexual women", "Bisexuality", "Bisexual",
   "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Language", "Philosophy of Religion",
   "Rupert Sheldrake", "Emil Kirkegaard", "Paul Eastwick", "Noah Carl", "Diana Fleischman", "Bo Winegard", "Edward Dutton", "Nathan Cofnas", "Sebastian Jensen", "Philip Zimbardo", "David Buss", "Jonathan Haidt", "Michael Shellenberger", "Rob Henderson", "Peter Boghossian", "John McWhorter", "Amishi Jha", "Richard J. Haier", "David Puts", "Robert Plomin", "Camille Paglia", "David Ley", "James Cantor", "Nicole Prause", "J. Michael Bailey", "Glenn Loury", "Dan Ariely", "Robert Malone", "Rainer Kaiser", "Delroy Paulhus", "Peter A. McCullough", "Richard Hanania", "Lex Fridman", "Jordan B Peterson",  
-  "Intelligence Quotient", "Intelligent Quotient", "IQ",
+  "Intelligence Quotient", "Intelligent Quotient", "IQ", "General Intelligence", "Fluid Intelligence", "Crystallized intelligence", "Crystallised intelligence", "Carroll's three-stratum hierarchy",
   "adhd AND nicotine", "ADHD and Nicotine", "ADHD",
   "Assortative Mating", "Intersexual Selection", "Mate Choice",
   "Genetics", "Attraction", "Intrasexual Competition",
@@ -174,6 +174,11 @@ const TERM_ALIASES = {
   "dreams AND memory consolidation": "Dreams",
   "sleep AND neuroplasticity": "Dreams",
   "sleep AND reverse-learning": "Dreams",
+  "General Intelligence": "Intelligence Quotient",
+  "Fluid Intelligence": "Intelligence Quotient",
+  "Crystallized intelligence": "Intelligence Quotient",
+  "Crystallised intelligence": "Intelligence Quotient",
+  "Carroll's three-stratum hierarchy": "Intelligence Quotient",
 };
 
 // Sidebar section tags — canonical() normalizes case variants to these.

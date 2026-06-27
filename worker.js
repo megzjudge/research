@@ -65,7 +65,7 @@ const KNOWN_TERMS = [
   "Sunlight OR Red Light OR Vitamin D OR Blue Light", "Sunlight", "Red Light", "Vitamin D", "Blue Light",
   "Meditation",
   '"Śūnyatā" OR "Śūnya"', "Śūnyatā OR Śūnya", "Śūnyatā", "Śūnya",
-  "dreams", "dreams AND consciousness", 
+  "dreams", "dreams AND consciousness", "Dimethyltryptamine", "dreams AND memory consolidation", "sleep AND neuroplasticity", "sleep AND reverse-learning"
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -170,10 +170,10 @@ const TERM_ALIASES = {
   "testosterone": "Testosterone",
   "dreams": "Dreams",
   "dreams AND consciousness": "Dreams",
-  "": "Dreams",
-  "": "Dreams",
-  "": "Dreams",
-  "": "Dreams",
+  "Dimethyltryptamine": "Dreams",
+  "dreams AND memory consolidation": "Dreams",
+  "sleep AND neuroplasticity": "Dreams",
+  "sleep AND reverse-learning": "Dreams",
 };
 
 // Sidebar section tags — canonical() normalizes case variants to these.

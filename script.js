@@ -157,10 +157,10 @@ const TERM_ALIASES = {
   "testosterone": "Testosterone",
   "dreams": "Dreams",
   "dreams AND consciousness": "Dreams",
-  "": "",
-  "": "",
-  "": "",
-  "": "",
+  "Dimethyltryptamine": "Dreams",
+  "dreams AND memory consolidation": "Dreams",
+  "sleep AND neuroplasticity": "Dreams",
+  "sleep AND reverse-learning": "Dreams",
 };
 
 const CANONICAL_TAGS = [

@@ -227,6 +227,7 @@ const TERM_ALIASES = {
   "enthusiasm and assertiveness": "Big Ten",
   "compassion and politeness": "Big Ten",
   "industriousness": "Big Ten",
+  "testosterone": "Testosterone",
 };
 
 // Sidebar section tags — canonical() normalizes case variants to these.

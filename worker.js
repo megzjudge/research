@@ -67,27 +67,6 @@ const KNOWN_TERMS = [
   '"Śūnyatā" OR "Śūnya"', "Śūnyatā OR Śūnya", "Śūnyatā", "Śūnya",
 ];
 
-Rupert Sheldrake https://scholar.google.com/citations?user=Ey1i5CYAAAAJ
-Emil Kirkegaard https://scholar.google.com/citations?user=VKUbfSIAAAAJ
-Paul Eastwick https://scholar.google.com/citations?user=ePCQ9z0AAAAJ
-Noah Carl https://scholar.google.com/citations?user=CUywRJoAAAAJ
-Diana Fleischman https://scholar.google.com/citations?user=Ytlll-UAAAAJ
-Bo Winegard https://scholar.google.co.uk/citations?user=Kr0O2nwAAAAJ
-Edward Dutton https://scholar.google.com/citations?user=k0A8n6sAAAAJ
-Nathan Cofnas https://scholar.google.com/citations?user=sOmCSskAAAAJ
-Sebastian Jensen https://scholar.google.com/citations?user=mEqpmMAAAAAJ
-Philip Zimbardo https://scholar.google.com/citations?user=eh55yOMAAAAJ
-David Buss https://scholar.google.com/citations?user=wrmnCfsAAAAJ
-Jonathan Haidt https://scholar.google.com/citations?user=VafYYacAAAAJ
-Michael Shellenberger https://scholar.google.com/citations?user=rBSjQOcAAAAJ
-Rob Henderson https://scholar.google.com/citations?hl=en&user=MBPgB1AAAAAJ
-Peter Boghossian https://scholar.google.com/citations?user=BshPNroAAAAJ
-John McWhorter https://scholar.google.com/citations?&user=9M4q0vwAAAAJ
-Amishi Jha https://scholar.google.com/citations?user=wcsVtXEAAAAJ
-Richard J. Haier https://scholar.google.com/citations?user=kVjCAWYAAAAJ
-
-
-
 // Map variant spellings to one canonical tag so they share a section.
 const TERM_ALIASES = {
   "big 5": "Big Five",

@@ -56,7 +56,7 @@ const KNOWN_TERMS = [
   "HEXACO", "Sociosexuality", "high sex drive",
   "Bisexual women", "Bisexuality", "Bisexual",
   "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Language", "Philosophy of Religion",
-  "Rupert Sheldrake", "Emil Kirkegaard", "Paul Eastwick", "Noah Carl", "Diana Fleischman"
+  "Rupert Sheldrake", "Emil Kirkegaard", "Paul Eastwick", "Noah Carl", "Diana Fleischman", "Bo Winegard", "Edward Dutton", "Nathan Cofnas", "Sebastian Jensen", "Philip Zimbardo", "David Buss", "Jonathan Haidt", "Michael Shellenberger", "Rob Henderson", "Peter Boghossian", "John McWhorter", "Amishi Jha", "Richard J. Haier",
   "Intelligence Quotient", "Intelligent Quotient", "IQ",
   "adhd AND nicotine", "ADHD and Nicotine", "ADHD",
   "Assortative Mating", "Intersexual Selection", "Mate Choice",
@@ -66,6 +66,27 @@ const KNOWN_TERMS = [
   "Meditation",
   '"Śūnyatā" OR "Śūnya"', "Śūnyatā OR Śūnya", "Śūnyatā", "Śūnya",
 ];
+
+Rupert Sheldrake https://scholar.google.com/citations?user=Ey1i5CYAAAAJ
+Emil Kirkegaard https://scholar.google.com/citations?user=VKUbfSIAAAAJ
+Paul Eastwick https://scholar.google.com/citations?user=ePCQ9z0AAAAJ
+Noah Carl https://scholar.google.com/citations?user=CUywRJoAAAAJ
+Diana Fleischman https://scholar.google.com/citations?user=Ytlll-UAAAAJ
+Bo Winegard https://scholar.google.co.uk/citations?user=Kr0O2nwAAAAJ
+Edward Dutton https://scholar.google.com/citations?user=k0A8n6sAAAAJ
+Nathan Cofnas https://scholar.google.com/citations?user=sOmCSskAAAAJ
+Sebastian Jensen https://scholar.google.com/citations?user=mEqpmMAAAAAJ
+Philip Zimbardo https://scholar.google.com/citations?user=eh55yOMAAAAJ
+David Buss https://scholar.google.com/citations?user=wrmnCfsAAAAJ
+Jonathan Haidt https://scholar.google.com/citations?user=VafYYacAAAAJ
+Michael Shellenberger https://scholar.google.com/citations?user=rBSjQOcAAAAJ
+Rob Henderson https://scholar.google.com/citations?hl=en&user=MBPgB1AAAAAJ
+Peter Boghossian https://scholar.google.com/citations?user=BshPNroAAAAJ
+John McWhorter https://scholar.google.com/citations?&user=9M4q0vwAAAAJ
+Amishi Jha https://scholar.google.com/citations?user=wcsVtXEAAAAJ
+Richard J. Haier https://scholar.google.com/citations?user=kVjCAWYAAAAJ
+
+
 
 // Map variant spellings to one canonical tag so they share a section.
 const TERM_ALIASES = {
@@ -100,7 +121,21 @@ const TERM_ALIASES = {
   "philosophy of religion": "Experimental Philosophy",
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",
+  "noah carl": "Followed Authors",
   "diana fleischman": "Followed Authors",
+  "bo winegard": "Followed Authors",
+  "edward dutton": "Followed Authors",
+  "nathan cofnas": "Followed Authors",
+  "sebastian jensen": "Followed Authors",
+  "philip zimbardo": "Followed Authors",
+  "david buss": "Followed Authors",
+  "jonathan haidt": "Followed Authors",
+  "michael shellenberger": "Followed Authors",
+  "rob henderson": "Followed Authors",
+  "peter boghossian": "Followed Authors",
+  "john mcWhorter": "Followed Authors",
+  "amishi jha": "Followed Authors",
+  "richard j. haier": "Followed Authors",
   "adhd and nicotine": "ADHD",
   "adhd": "ADHD",
   "high sex drive": "High Sex Drive",

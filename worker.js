@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v25 — all-caps titles normalized to title case on intake (2026-06-19)";
+const VERSION = "worker v26 — dropped venue column from intake (2026-06-28)";
 
 const KNOWN_TERMS = [
   // Big Ten aspect alerts — before overlapping short terms
@@ -482,7 +482,7 @@ function parseByH3(html) {
       || chunk.match(/<div[^>]*>([\s\S]{40,}?)<\/div>/i);
     const snippet = snippetMatch ? stripTags(snippetMatch[1]).trim() : "";
 
-    results.push({ title, link, authors, snippet, venue: authors });
+    results.push({ title, link, authors, snippet });
   }
 
   return results;
@@ -528,7 +528,7 @@ function parseByAnchors(html) {
       .replace(/Cancel alert.*$/is, "")
       .trim();
 
-    results.push({ title, link, authors, snippet, venue: authors });
+    results.push({ title, link, authors, snippet });
   }
 
   return results;
@@ -672,11 +672,11 @@ async function upsertPaper(db, p, tag, subject) {
   // 1 · Primary de-dup on the (normalized) link.
   await db
     .prepare(
-      `INSERT INTO papers (title, authors, snippet, link, venue, alert_subject)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO papers (title, authors, snippet, link, alert_subject)
+       VALUES (?, ?, ?, ?, ?)
        ON CONFLICT(link) DO NOTHING`
     )
-    .bind(title, p.authors, p.snippet, p.link, p.venue, subject)
+    .bind(title, p.authors, p.snippet, p.link, subject)
     .run();
 
   let row = await db

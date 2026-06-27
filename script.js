@@ -166,6 +166,7 @@ const TERM_ALIASES = {
   "Crystallized intelligence": "Intelligence Quotient",
   "Crystallised intelligence": "Intelligence Quotient",
   "Carroll's three-stratum hierarchy": "Intelligence Quotient",
+  "Honesty-Humility": "HEXACO",
 };
 
 const CANONICAL_TAGS = [

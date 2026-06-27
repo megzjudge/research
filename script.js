@@ -49,7 +49,7 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Health",
-    tags: ["Sunlight", "Health (overall)", "Essential Oil"],
+    tags: ["Sunlight", "Health (overall)", "Essential Oil", "Testosterone"],
   },
   {
     banner: "Specifics",
@@ -179,6 +179,7 @@ const CANONICAL_TAGS = [
   "Sunlight",
   "Meditation",
   "Śūnyatā",
+  "Testosterone",
 ];
 
 function canonical(tag) {

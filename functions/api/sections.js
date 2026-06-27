@@ -39,6 +39,7 @@ const TERM_ALIASES = {
   "philosophy of religion": "Experimental Philosophy",
   "rupert sheldrake": "Followed Authors",
   "emil kirkegaard": "Followed Authors",
+  "paul eastwick": "Followed Authors",
   "adhd and nicotine": "ADHD",
   "adhd": "ADHD",
   "high sex drive": "High Sex Drive",

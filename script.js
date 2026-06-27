@@ -33,7 +33,7 @@ let studyLink = "";
 const RAIL_GROUPS = [
   {
     banner: "Noetics",
-    tags: ["Experimental Philosophy", "Śūnyatā", "Meditation", "Dreams"],
+    tags: ["Experimental Philosophy", "Dreams", "Śūnyatā", "Meditation"],
   },
   {
     banner: "Psychology",

@@ -37,7 +37,7 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Psychology",
-    tags: ["Intelligence Quotient", "Big Five", "Big Ten", "MBTI", "HEXACO", "Indian Psychology"],
+    tags: ["Big Five", "Big Ten", "Intelligence Quotient", "MBTI", "HEXACO", "Indian Psychology"],
   },
   {
     banner: "Deviancy",

@@ -65,7 +65,7 @@ const KNOWN_TERMS = [
   "Sunlight OR Red Light OR Vitamin D OR Blue Light", "Sunlight", "Red Light", "Vitamin D", "Blue Light",
   "Meditation",
   '"Śūnyatā" OR "Śūnya"', "Śūnyatā OR Śūnya", "Śūnyatā", "Śūnya",
-  "dreams", "dreams AND consciousness", "Dimethyltryptamine", "dreams AND memory consolidation", "sleep AND neuroplasticity", "sleep AND reverse-learning"
+  "dreams", "dreams AND consciousness", "Dimethyltryptamine", "dreams AND memory consolidation", "sleep AND neuroplasticity", "sleep AND reverse-learning", "psilocybin"
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -174,6 +174,7 @@ const TERM_ALIASES = {
   "dreams AND memory consolidation": "Dreams",
   "sleep AND neuroplasticity": "Dreams",
   "sleep AND reverse-learning": "Dreams",
+  "psilocybin": "Dreams",
   "General Intelligence": "Intelligence Quotient",
   "Fluid Intelligence": "Intelligence Quotient",
   "Crystallized intelligence": "Intelligence Quotient",

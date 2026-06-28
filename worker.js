@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v26 — dropped venue column from intake (2026-06-28)";
+const VERSION = "worker v26 — dropped venue column from intake (2026-06-29)";
 
 const KNOWN_TERMS = [
   // Big Ten aspect alerts — before overlapping short terms

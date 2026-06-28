@@ -22,7 +22,7 @@
  *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
  */
 
-const VERSION = "worker v26 — dropped venue column from intake (2026-06-29)";
+const VERSION = "worker v27 — D1 errors logged, mail not dropped (2026-06-29)";
 
 const KNOWN_TERMS = [
   // Big Ten aspect alerts — before overlapping short terms
@@ -405,38 +405,62 @@ export default {
     }
 
     // ── parse + store ──────────────────────────────────────────────
-    const raw = await streamToString(message.raw);
-    const subject = message.headers.get("subject") || "";
+    // Uncaught errors here mark the message "Dropped" in Email Routing.
+    // Catch everything after the sender gate so a D1/schema hiccup doesn't
+    // reject genuine Scholar mail.
+    try {
+      if (!env.research) {
+        console.log("Missing D1 binding env.research — check worker bindings.");
+        return;
+      }
 
-    // A forward can contain several text/html parts (the forwarder's
-    // wrapper, the original message, an attached .eml). Scan them all.
-    const htmlParts = extractHtmlBodies(raw);
-    if (htmlParts.length === 0) {
-      console.log("No HTML body found; skipping. (Plain-text forwards aren't supported — forward as inline HTML.)");
-      return;
-    }
+      const raw = await streamToString(message.raw);
+      const subject = message.headers.get("subject") || "";
 
-    let papers = [];
-    for (const html of htmlParts) {
-      papers = papers.concat(parseScholarHtml(html));
-    }
-    papers = dedupeByLink(papers);
+      // A forward can contain several text/html parts (the forwarder's
+      // wrapper, the original message, an attached .eml). Scan them all.
+      const htmlParts = extractHtmlBodies(raw);
+      if (htmlParts.length === 0) {
+        console.log("No HTML body found; skipping. (Plain-text forwards aren't supported — forward as inline HTML.)");
+        return;
+      }
 
-    if (papers.length === 0) {
-      const first = htmlParts[0] || "";
+      let papers = [];
+      for (const html of htmlParts) {
+        papers = papers.concat(parseScholarHtml(html));
+      }
+      papers = dedupeByLink(papers);
+
+      if (papers.length === 0) {
+        const first = htmlParts[0] || "";
+        console.log(
+          `No papers parsed from alert: ${subject} | ${htmlParts.length} html part(s), first ${first.length} chars, starts: ${first.slice(0, 100).replace(/\s+/g, " ")}`
+        );
+        return;
+      }
+
+      const tag = deriveTag(subject);
+      let stored = 0;
+      let failed = 0;
+
+      for (const p of papers) {
+        try {
+          await upsertPaper(env.research, p, tag, subject);
+          stored++;
+        } catch (e) {
+          failed++;
+          console.log(
+            `upsert failed (${failed}) title="${(p.title || "").slice(0, 80)}" link="${p.link || ""}": ${String(e)}`
+          );
+        }
+      }
+
       console.log(
-        `No papers parsed from alert: ${subject} | ${htmlParts.length} html part(s), first ${first.length} chars, starts: ${first.slice(0, 100).replace(/\s+/g, " ")}`
+        `Ingest done: ${stored}/${papers.length} stored, ${failed} failed, tag="${tag}" (subject: ${subject}).`
       );
-      return;
+    } catch (e) {
+      console.log(`email handler error: ${String(e)}`);
     }
-
-    const tag = deriveTag(subject);
-
-    for (const p of papers) {
-      await upsertPaper(env.research, p, tag, subject);
-    }
-
-    console.log(`Stored ${papers.length} paper(s) under tag "${tag}" (subject: ${subject}).`);
   },
 };
 

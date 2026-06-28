@@ -161,6 +161,7 @@ const TERM_ALIASES = {
   "dreams AND memory consolidation": "Dreams",
   "sleep AND neuroplasticity": "Dreams",
   "sleep AND reverse-learning": "Dreams",
+  "psilocybin": "Dreams",
   "General Intelligence": "Intelligence Quotient",
   "Fluid Intelligence": "Intelligence Quotient",
   "Crystallized intelligence": "Intelligence Quotient",

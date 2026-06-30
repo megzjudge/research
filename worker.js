@@ -692,16 +692,26 @@ function titleKey(t) {
     .replace(/\s+/g, " ");
 }
 
+function sydneyNow() {
+  const parts = new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Sydney",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(new Date());
+  const p = Object.fromEntries(parts.filter(x => x.type !== "literal").map(x => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+
 async function upsertPaper(db, p, tag, subject) {
   const title = normalizeIntakeTitle(p.title);
   // 1 · Primary de-dup on the (normalized) link.
   await db
     .prepare(
-      `INSERT INTO papers (title, authors, snippet, link, alert_subject)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO papers (title, authors, snippet, link, alert_subject, first_seen)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(link) DO NOTHING`
     )
-    .bind(title, p.authors, p.snippet, p.link, subject)
+    .bind(title, p.authors, p.snippet, p.link, subject, sydneyNow())
     .run();
 
   let row = await db

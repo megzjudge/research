@@ -180,6 +180,18 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: true, id, link });
     }
 
+    if (action === "edit") {
+      const title = (body.title || "").trim();
+      const authors = (body.authors || "").trim();
+      const snippet = (body.snippet || "").trim();
+      if (!title) return json({ error: "title required" }, 400);
+      await env.research
+        .prepare(`UPDATE papers SET title = ?, authors = ?, snippet = ? WHERE id = ?`)
+        .bind(title, authors, snippet, id)
+        .run();
+      return json({ ok: true, id, title, authors, snippet });
+    }
+
     if (action === "star") {
       const on = body.on !== false;
       await env.research

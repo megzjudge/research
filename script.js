@@ -608,6 +608,7 @@ function cardActs(p) {
     </span>`;
   }
   const linkBtn = `<button class="urlbtn" data-editurl="${p.id}" data-link="${esc(p.link)}" title="replace link" aria-label="replace link">↗</button>`;
+  const editBtn = `<button class="editbtn" data-editpaper="${p.id}" title="edit title/author/description" aria-label="edit">✎</button>`;
   const uploadBtn = `<button class="uploadbtn" data-upload="${p.id}" title="upload screenshot(s)" aria-label="upload screenshot(s)">+</button>`;
   const trashBtn = `<button data-pstatus="trash" data-id="${p.id}" title="trash" aria-label="trash">✕</button>`;
   const starBtn = isStarred(p)
@@ -616,7 +617,34 @@ function cardActs(p) {
   const readBtn = isRead(p)
     ? `<button class="readbtn on" data-read="${p.id}" data-on="0" title="mark unread" aria-label="mark unread">R</button>`
     : `<button class="readbtn" data-read="${p.id}" data-on="1" title="read" aria-label="read">R</button>`;
-  return `<span class="cardacts">${sciBtn}${linkBtn}${uploadBtn}${trashBtn}${starBtn}${readBtn}</span>`;
+  return `<span class="cardacts">${sciBtn}${linkBtn}${editBtn}${uploadBtn}${trashBtn}${starBtn}${readBtn}</span>`;
+}
+
+async function editPaper(id, curTitle, curAuthors, curSnippet) {
+  const title = window.prompt("Title:", curTitle);
+  if (title === null) return;
+  if (!title.trim()) { showToast("Title can't be empty.", false); return; }
+
+  const authors = window.prompt("Author(s):", curAuthors);
+  if (authors === null) return;
+
+  const snippet = window.prompt("Description:", curSnippet);
+  if (snippet === null) return;
+
+  const r = await postWrite("/api/papers", {
+    action: "edit",
+    id,
+    title: title.trim(),
+    authors: authors.trim(),
+    snippet: snippet.trim(),
+  });
+  if (r && r.ok) {
+    showToast("Paper updated.");
+    refresh();
+  } else {
+    const err = await r.json().catch(() => ({}));
+    showToast(err.error || "Couldn't update paper.", false);
+  }
 }
 
 elSections.addEventListener("click", async (e) => {
@@ -679,6 +707,17 @@ elSections.addEventListener("click", async (e) => {
     if (r && r.status === 409) { alert("Another paper already has that link."); return; }
     if (r && !r.ok) { alert("Couldn't update the link."); return; }
     refresh();
+    return;
+  }
+
+  const editBtn = e.target.closest("[data-editpaper]");
+  if (editBtn) {
+    const id = +editBtn.getAttribute("data-editpaper");
+    const card = editBtn.closest(".cardx");
+    const curTitle   = card?.querySelector(".ttl")?.textContent || "";
+    const curAuthors = card?.querySelector(".auth")?.textContent || "";
+    const curSnippet = card?.querySelector(".snip")?.textContent || "";
+    await editPaper(id, curTitle, curAuthors, curSnippet);
     return;
   }
 

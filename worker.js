@@ -341,6 +341,40 @@ function parseAddress(headerValue) {
   return (m ? m[1] : headerValue).trim();
 }
 
+// Decode RFC 2047 encoded-word headers (e.g. Subject: =?UTF-8?B?...?=),
+// which mail clients use to carry non-ASCII text in headers. Without this,
+// alerts like "Śūnyatā" OR "śūnya" arrive as raw base64 and never match any
+// known term — they get tagged verbatim as gibberish.
+function decodeMimeWords(str) {
+  if (!str) return str;
+  // RFC 2047: whitespace strictly between two encoded-words is folding
+  // artifact, not a real space — drop it before decoding.
+  const joined = str.replace(/(\?=)\s+(=\?[^?]+\?[BbQq]\?)/g, "$1$2");
+  return joined.replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, (_, charset, enc, text) => {
+    try {
+      if (enc.toUpperCase() === "B") {
+        const bin = atob(text);
+        const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+        return decodeCharset(bytes, charset);
+      }
+      // Q encoding: quoted-printable with "_" standing in for space.
+      const withSpaces = text.replace(/_/g, " ");
+      const bytes = [];
+      for (let i = 0; i < withSpaces.length; i++) {
+        if (withSpaces[i] === "=" && /^[0-9A-Fa-f]{2}/.test(withSpaces.slice(i + 1, i + 3))) {
+          bytes.push(parseInt(withSpaces.slice(i + 1, i + 3), 16));
+          i += 2;
+        } else {
+          bytes.push(withSpaces.charCodeAt(i) & 0xff);
+        }
+      }
+      return decodeCharset(new Uint8Array(bytes), charset);
+    } catch {
+      return _; // leave the encoded-word as-is if decoding fails
+    }
+  });
+}
+
 export default {
   // Lets you check what's deployed by visiting the worker's URL in a browser.
   async fetch(request, env) {
@@ -414,7 +448,7 @@ export default {
       }
 
       const raw = await streamToString(message.raw);
-      const subject = message.headers.get("subject") || "";
+      const subject = decodeMimeWords(message.headers.get("subject") || "");
 
       // A forward can contain several text/html parts (the forwarder's
       // wrapper, the original message, an attached .eml). Scan them all.

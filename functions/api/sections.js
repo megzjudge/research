@@ -88,7 +88,7 @@ const TERM_ALIASES = {
   "testosterone": "Testosterone",
   "dreams and consciousness": "Dreams",
   "dimethyltryptamine": "Dreams",
-  "dreams AND memory consolidation": "Dreams",
+  "dreams and memory consolidation": "Dreams",
   "sleep and neuroplasticity": "Dreams",
   "sleep and reverse-learning": "Dreams",
   "psilocybin": "Dreams",

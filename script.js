@@ -20,6 +20,7 @@ const elTrashLink  = document.getElementById("trashlink");
 const elTrashCount = document.getElementById("trashcount");
 const elShotsLink  = document.getElementById("shotslink");
 const elShotsCount = document.getElementById("shotscount");
+const elHomeLink   = document.getElementById("homelink");
 const elLightbox   = document.getElementById("lightbox");
 const elLightboxImg = document.getElementById("lightbox-img");
 const elToast      = document.getElementById("toast");
@@ -29,6 +30,7 @@ let view   = "sections";
 let authPw = null;
 let allTags = [];
 let studyLink = "";
+let savedScroll = 0; // scroll position on the home page, captured right before navigating away
 
 const RAIL_GROUPS = [
   {
@@ -313,8 +315,24 @@ elShotsLink?.addEventListener("click", (e) => {
   runScreenshots();
 });
 
+function setView(v) {
+  // Capture where the user was on the home page the moment they leave it,
+  // so the "all sections" link can put them back exactly there.
+  if (view === "sections" && v !== "sections") savedScroll = window.scrollY;
+  view = v;
+  if (elHomeLink) elHomeLink.hidden = v === "sections";
+}
+
+elHomeLink?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  elQ.value = "";
+  const target = savedScroll;
+  await loadSections();
+  window.scrollTo({ top: target, behavior: "auto" });
+});
+
 async function loadSections() {
-  view = "sections";
+  setView("sections");
   elStatus.textContent = "loading…";
   try {
     const r = await fetch(`/api/sections?per=${FETCH}`);
@@ -543,7 +561,7 @@ function shotHtml(p) {
 function cardHtml(p, compact) {
   const canonTags = [...new Set((p.tags || []).map(t => canonical(t)))];
   const chips = canonTags.map(c =>
-    `<button class="tagchip" data-tag="${esc(c)}">${prettyLabel(c)}</button>`
+    `<button class="tagchip" data-tag="${esc(c)}" data-id="${p.id || ""}">${prettyLabel(c)}</button>`
   ).join("");
 
   const has = new Set(canonTags);
@@ -686,7 +704,27 @@ elSections.addEventListener("click", async (e) => {
   }
 
   const chip = e.target.closest(".tagchip:not(.tagadd)");
-  if (chip) { elQ.value = ""; runSearch("", chip.getAttribute("data-tag")); return; }
+  if (chip) {
+    // Manual double-click detection (instead of a separate "dblclick"
+    // listener) so there's no race between our own single-click delay and
+    // the browser's independent double-click timing — same clock, one place.
+    const now = Date.now();
+    const isDoubleClick = now - (chip._lastClick || 0) < 400;
+    chip._lastClick = now;
+    clearTimeout(chip._clickTimer);
+
+    if (isDoubleClick) {
+      chip._lastClick = 0;
+      removeTagFromChip(chip);
+      return;
+    }
+
+    chip._clickTimer = setTimeout(() => {
+      elQ.value = "";
+      runSearch("", chip.getAttribute("data-tag"));
+    }, 400);
+    return;
+  }
 
   const act = e.target.closest("[data-pstatus]");
   if (!act) return;
@@ -699,6 +737,25 @@ elSections.addEventListener("click", async (e) => {
   } catch (err) { /* refresh shows the truth either way */ }
   refresh();
 });
+
+async function removeTagFromChip(chip) {
+  const tag = chip.getAttribute("data-tag");
+  const id = +chip.getAttribute("data-id");
+  if (!tag || !id) return;
+
+  if (!confirm(`Remove tag "${tag}" from this paper?`)) return;
+
+  chip.disabled = true;
+  const r = await postWrite("/api/papers", { action: "tag", id, tag, remove: true });
+  if (r && r.ok) {
+    showToast("Tag removed.");
+    refresh();
+  } else {
+    chip.disabled = false;
+    const err = await r.json().catch(() => ({}));
+    showToast(err.error || "Couldn't remove tag.", false);
+  }
+}
 
 function openLightbox(src) {
   if (!elLightbox || !elLightboxImg || !src) return;
@@ -795,7 +852,7 @@ elQ.addEventListener("input", () => {
 });
 
 async function runSearch(q, tag) {
-  view = "search";
+  setView("search");
   elStatus.textContent = "searching…";
   const params = new URLSearchParams({ limit: 100 });
   if (q)   params.set("q",   q);
@@ -816,7 +873,7 @@ async function runSearch(q, tag) {
 }
 
 async function runTrash() {
-  view = "trash";
+  setView("trash");
   elStatus.textContent = "loading trash…";
   try {
     const r = await fetch("/api/papers?status=trash&limit=200");
@@ -845,7 +902,7 @@ function screenshotItemHtml(paperId, title, src) {
 }
 
 async function runScreenshots() {
-  view = "screenshots";
+  setView("screenshots");
   elStatus.textContent = "loading screenshots…";
   try {
     const r = await fetch("/api/papers?has_screenshot=1&limit=500");

@@ -3,6 +3,16 @@
  * POST /api/papers  — create, status, tag, link, read, star, screenshot
  */
 
+function sydneyNow() {
+  const parts = new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Sydney",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(new Date());
+  const p = Object.fromEntries(parts.filter(x => x.type !== "literal").map(x => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+
 const STATUSES = ["inbox", "starred", "trash"];
 
 const PAPER_FIELDS = `
@@ -97,11 +107,11 @@ export async function onRequestPost({ request, env }) {
       try {
         await env.research
           .prepare(
-            `INSERT INTO papers (title, authors, snippet, link, alert_subject, status)
-             VALUES (?, ?, ?, ?, ?, 'inbox')
+            `INSERT INTO papers (title, authors, snippet, link, alert_subject, status, first_seen)
+             VALUES (?, ?, ?, ?, ?, 'inbox', ?)
              ON CONFLICT(link) DO NOTHING`
           )
-          .bind(title, authors, snippet, link, "manual add")
+          .bind(title, authors, snippet, link, "manual add", sydneyNow())
           .run();
         row = await env.research
           .prepare(`SELECT id FROM papers WHERE link = ?`)

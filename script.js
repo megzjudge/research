@@ -432,6 +432,13 @@ function renderAll(sections) {
     sec.className = "section";
     sec.id = slug(s.tag);
 
+    const readCount = splitPapers(s.papers || []).compact.length;
+
+    const moreLinks = [
+      s.count > FETCH ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "",
+      readCount > 0 ? `<a class="sec-more" href="#" data-all-read="${esc(s.tag)}">see all read (${readCount}) →</a>` : "",
+    ].filter(Boolean).join("");
+
     const body = s.count === 0
       ? `<p class="sec-empty">No papers yet — waiting on the first alert.</p>`
       : `<div class="secbody">
@@ -448,7 +455,7 @@ function renderAll(sections) {
              </div>
            </div>
          </div>` +
-        (s.count > FETCH ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "");
+        (moreLinks ? `<div class="sec-more-row">${moreLinks}</div>` : "");
 
     sec.innerHTML = `
       <div class="sechead">
@@ -883,6 +890,9 @@ function wireSectionActions() {
   elSections.querySelectorAll("[data-all]").forEach(a => {
     a.onclick = (e) => { e.preventDefault(); elQ.value = ""; runSearch("", a.getAttribute("data-all")); };
   });
+  elSections.querySelectorAll("[data-all-read]").forEach(a => {
+    a.onclick = (e) => { e.preventDefault(); elQ.value = ""; runSearch("", a.getAttribute("data-all-read"), true); };
+  });
 }
 
 let debounce;
@@ -894,18 +904,20 @@ elQ.addEventListener("input", () => {
   }, 220);
 });
 
-async function runSearch(q, tag) {
+async function runSearch(q, tag, readOnly = false) {
   setView("search");
   elStatus.textContent = "searching…";
   const params = new URLSearchParams({ limit: 100 });
   if (q)   params.set("q",   q);
   if (tag) params.set("tag", tag);
+  if (readOnly) params.set("read", "1");
   try {
     const r = await fetch("/api/papers?" + params);
     const { papers = [] } = await r.json();
+    const heading = tag ? `${prettyLabel(tag)}${readOnly ? " — read" : ""}` : "Search";
     elSections.innerHTML = `
       <section class="section">
-        <div class="sechead"><h2>${tag ? prettyLabel(tag) : "Search"}</h2><span class="count">${papers.length}</span></div>
+        <div class="sechead"><h2>${heading}</h2><span class="count">${papers.length}</span></div>
         <div class="grid">${papers.map((p) => cardHtml(p, false)).join("")}</div>
       </section>`;
     elStatus.textContent = papers.length ? "" : "Nothing matched.";

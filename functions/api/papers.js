@@ -58,14 +58,22 @@ export async function onRequestGet({ request, env }) {
     where.push(`p.status != 'trash'`);
   }
 
+  const read = url.searchParams.get("read");
+  if (read === "1") {
+    where.push(`p.read_at IS NOT NULL`);
+  } else if (read === "0") {
+    where.push(`p.read_at IS NULL`);
+  }
+
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const orderSql = read === "1" ? "p.read_at DESC" : "p.first_seen DESC";
 
   const sql = `
     SELECT ${PAPER_FIELDS},
            (SELECT group_concat(tag, '|') FROM tags WHERE paper_id = p.id) AS tags
     FROM papers p
     ${whereSql}
-    ORDER BY p.first_seen DESC
+    ORDER BY ${orderSql}
     LIMIT ? OFFSET ?`;
 
   binds.push(limit, offset);

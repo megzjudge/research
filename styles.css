@@ -113,6 +113,8 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .sec-empty { font-family: var(--mono); font-size: 12px; color: var(--faint); padding: 8px 0 4px; }
 .sec-more { font-family: var(--mono); font-size: 11px; color: var(--accent); text-decoration: none; display: inline-block; margin-top: 14px; }
 .sec-more:hover { text-decoration: underline; }
+.sec-more-row { display: flex; flex-wrap: wrap; gap: 16px; }
+.sec-more-row .sec-more { margin-top: 14px; }
 
 .statusline { font-family: var(--mono); font-size: 12px; color: var(--faint); padding: 50px 0; text-align: center; }
 

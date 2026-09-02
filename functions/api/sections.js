@@ -67,7 +67,9 @@ const TERM_ALIASES = {
   "robert malone": "Followed Authors",
   "rainer kaiser": "Followed Authors",
   "delroy paulhus": "Followed Authors",
-  "peter a. mccullough": "Followed Authors",
+  "peter a mccullough": "Followed Authors",
+  "dm buss": "Followed Authors",
+  "dm bus": "Followed Authors",
   "richard hanania": "Followed Authors",
   "lex fridman": "Followed Authors",
   "jordan b peterson": "Followed Authors",
@@ -89,6 +91,7 @@ const TERM_ALIASES = {
   "dreams and consciousness": "Dreams",
   "dimethyltryptamine": "Dreams",
   "dreams and memory consolidation": "Dreams",
+  "memory consolidation": "Dreams",
   "sleep and neuroplasticity": "Dreams",
   "sleep and reverse-learning": "Dreams",
   "psilocybin": "Dreams",
@@ -124,6 +127,7 @@ const CANONICAL_TAGS = [
   "Meditation",
   "Śūnyatā",
   "Testosterone",
+  "Coronavirus",
   "Dreams",
 ];
 

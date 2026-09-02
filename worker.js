@@ -56,7 +56,7 @@ const KNOWN_TERMS = [
   "HEXACO", "Sociosexuality", "high sex drive", "Honesty-Humility",
   "Bisexual women", "Bisexuality", "Bisexual",
   "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Language", "Philosophy of Religion",
-  "Rupert Sheldrake", "Emil Kirkegaard", "Paul Eastwick", "Noah Carl", "Diana Fleischman", "Bo Winegard", "Edward Dutton", "Nathan Cofnas", "Sebastian Jensen", "Philip Zimbardo", "David Buss", "Jonathan Haidt", "Michael Shellenberger", "Rob Henderson", "Peter Boghossian", "John McWhorter", "Amishi Jha", "Richard J. Haier", "David Puts", "Robert Plomin", "Camille Paglia", "David Ley", "James Cantor", "Nicole Prause", "J. Michael Bailey", "Glenn Loury", "Dan Ariely", "Robert Malone", "Rainer Kaiser", "Delroy Paulhus", "Peter A. McCullough", "Richard Hanania", "Lex Fridman", "Jordan B Peterson",  
+  "Rupert Sheldrake", "Emil Kirkegaard", "Paul Eastwick", "Noah Carl", "Diana Fleischman", "Bo Winegard", "Edward Dutton", "Nathan Cofnas", "Sebastian Jensen", "Philip Zimbardo", "David Buss", "Jonathan Haidt", "Michael Shellenberger", "Rob Henderson", "Peter Boghossian", "John McWhorter", "Amishi Jha", "Richard J. Haier", "David Puts", "Robert Plomin", "Camille Paglia", "David Ley", "James Cantor", "Nicole Prause", "J. Michael Bailey", "Glenn Loury", "Dan Ariely", "Robert Malone", "Rainer Kaiser", "Delroy Paulhus", "Peter A McCullough", "DM Buss", "DM Bus", "Richard Hanania", "Lex Fridman", "Jordan B Peterson",
   "Intelligence Quotient", "Intelligent Quotient", "IQ", "General Intelligence", "Fluid Intelligence", "Crystallized intelligence", "Crystallised intelligence", "Carroll's three-stratum hierarchy",
   "adhd AND nicotine", "ADHD and Nicotine", "ADHD",
   "Assortative Mating", "Intersexual Selection", "Mate Choice",
@@ -65,7 +65,7 @@ const KNOWN_TERMS = [
   "Sunlight OR Red Light OR Vitamin D OR Blue Light", "Sunlight", "Red Light", "Vitamin D", "Blue Light",
   "Meditation",
   '"Śūnyatā" OR "Śūnya"', "Śūnyatā OR Śūnya", "Śūnyatā", "Śūnya",
-  "dreams", "dreams AND consciousness", "Dimethyltryptamine", "dreams AND memory consolidation", "sleep AND neuroplasticity", "sleep AND reverse-learning", "psilocybin"
+  "dreams", "dreams AND consciousness", "Dimethyltryptamine", "dreams AND memory consolidation", "memory consolidation", "sleep AND neuroplasticity", "sleep AND reverse-learning", "psilocybin"
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -128,7 +128,9 @@ const TERM_ALIASES = {
   "robert malone": "Followed Authors",
   "rainer kaiser": "Followed Authors",
   "delroy paulhus": "Followed Authors",
-  "peter a. mccullough": "Followed Authors",
+  "peter a mccullough": "Followed Authors",
+  "dm buss": "Followed Authors",
+  "dm bus": "Followed Authors",
   "richard hanania": "Followed Authors",
   "lex fridman": "Followed Authors",
   "jordan b peterson": "Followed Authors",
@@ -171,6 +173,7 @@ const TERM_ALIASES = {
   "dreams and consciousness": "Dreams",
   "dimethyltryptamine": "Dreams",
   "dreams and memory consolidation": "Dreams",
+  "memory consolidation": "Dreams",
   "sleep and neuroplasticity": "Dreams",
   "sleep and reverse-learning": "Dreams",
   "psilocybin": "Dreams",
@@ -207,6 +210,7 @@ const CANONICAL_TAGS = [
   "Meditation",
   "Śūnyatā",
   "Testosterone",
+  "Coronavirus",
   "Dreams",
 ];
 
@@ -696,7 +700,7 @@ function deriveTag(subject) {
   }
   const matched = matchKnownTerm(subject);
   if (matched) return canonical(matched);
-  return canonical(subject.replace(/\s*-\s*new results.*/i, "").trim()) || "untagged";
+  return canonical(subject.replace(/\s*-\s*new (?:results|articles).*/i, "").trim()) || "untagged";
 }
 
 function matchKnownTerm(text) {

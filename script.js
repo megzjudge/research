@@ -1,6 +1,7 @@
 const FETCH = 24;
 const SCIHUB_MIRROR = "https://sci-hub.red/";
 const pageSize = () => (window.matchMedia("(max-width: 860px)").matches ? 2 : 3);
+const compactPageSize = () => (window.matchMedia("(max-width: 860px)").matches ? 2 : 4);
 const elSections   = document.getElementById("sections");
 const elRail       = document.getElementById("railnav");
 const elStatus     = document.getElementById("status");
@@ -440,7 +441,11 @@ function renderAll(sections) {
              <button class="navbtn next" aria-label="more papers"></button>
            </div>
            <div class="compact-wrap" hidden>
-             <div class="grid compact-grid"></div>
+             <div class="carousel carousel-compact">
+               <button class="navbtn prev" aria-label="previous read papers"></button>
+               <div class="grid grid-page compact-grid"></div>
+               <button class="navbtn next" aria-label="more read papers"></button>
+             </div>
            </div>
          </div>` +
         (s.count > FETCH ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "");
@@ -460,26 +465,25 @@ function renderAll(sections) {
 function initSection(sec, s) {
   const { main, compact } = splitPapers(s.papers || []);
   initCarousel(sec.querySelector(".carousel-main"), { tag: s.tag, papers: main });
-  renderCompactRow(sec.querySelector(".compact-wrap"), sec.querySelector(".compact-grid"), compact);
+  initCompactRow(sec.querySelector(".compact-wrap"), { tag: s.tag, papers: compact });
   sec._reshow = () => {
     const split = splitPapers(s.papers || []);
     initCarousel(sec.querySelector(".carousel-main"), { tag: s.tag, papers: split.main });
-    renderCompactRow(sec.querySelector(".compact-wrap"), sec.querySelector(".compact-grid"), split.compact);
+    initCompactRow(sec.querySelector(".compact-wrap"), { tag: s.tag, papers: split.compact });
   };
 }
 
-function renderCompactRow(wrap, grid, papers) {
-  if (!wrap || !grid) return;
-  if (!papers.length) {
-    wrap.hidden = true;
-    grid.innerHTML = "";
-    return;
-  }
-  wrap.hidden = false;
-  grid.innerHTML = papers.map((p) => cardHtml(p, true)).join("");
+function initCompactRow(wrap, s) {
+  if (!wrap) return;
+  wrap.hidden = !s.papers.length;
+  if (!s.papers.length) return;
+  initCarousel(wrap.querySelector(".carousel-compact"), { tag: `${s.tag}::read`, papers: s.papers }, {
+    perFn: compactPageSize,
+    compact: true,
+  });
 }
 
-function initCarousel(carousel, s) {
+function initCarousel(carousel, s, { perFn = pageSize, compact = false } = {}) {
   if (!carousel) return;
   const papers = s.papers || [];
   const grid = carousel.querySelector(".grid-page");
@@ -488,11 +492,11 @@ function initCarousel(carousel, s) {
   if (!grid) return;
 
   function show(page) {
-    const per = pageSize();
+    const per = perFn();
     const maxPage = Math.max(0, Math.ceil(papers.length / per) - 1);
     page = Math.min(Math.max(page, 0), maxPage);
     pageOf.set(s.tag, page);
-    grid.innerHTML = papers.slice(page * per, page * per + per).map((p) => cardHtml(p, false)).join("");
+    grid.innerHTML = papers.slice(page * per, page * per + per).map((p) => cardHtml(p, compact)).join("");
     if (prev && next) {
       const hideArrows = papers.length <= per;
       prev.style.display = next.style.display = hideArrows ? "none" : "";

@@ -1,0 +1,17 @@
+TITLE: Stigler–Becker versus Myers–Briggs: why preference-based explanations are scientifically meaningful and empirically important
+LINK: https://econfaculty.gmu.edu/bcaplan/pdfs/sbvsmb.pdf
+READ_AT/FIRST_SEEN: March 29, 2023 1:44
+AUTHORS: Bryan Caplan
+SECTION: MBTI
+
+TITLE: Development of the Open Jungian Type Scales [MBTI]
+LINK: http://openpsychometrics.org/tests/OJTS/development/
+READ_AT/FIRST_SEEN: April 1, 2023 17:16
+AUTHORS: Eric Jorgenson
+SECTION: MBTI
+
+TITLE: Toward an Empirically Sound and Radically Revised Type Theory [MBTI]
+LINK: https://web.archive.org/web/20220816103623/https://www.capt.org/research/article/JPT_Vol72_01_0312.pdf
+READ_AT/FIRST_SEEN: April 1, 2023 17:08
+AUTHORS: James H. Reynierse
+SECTION: MBTI

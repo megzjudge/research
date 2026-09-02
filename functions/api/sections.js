@@ -217,10 +217,20 @@ export async function onRequestGet({ request, env }) {
            FROM papers p
            WHERE p.status = 'inbox'
              AND p.id IN (SELECT paper_id FROM tags WHERE tag IN (${placeholders}))
-           ORDER BY p.first_seen DESC
-           LIMIT ?`
+             AND (
+               p.read_at IS NOT NULL OR p.starred_at IS NOT NULL
+               OR p.id IN (
+                 SELECT p2.id FROM papers p2
+                 WHERE p2.status = 'inbox'
+                   AND p2.read_at IS NULL AND p2.starred_at IS NULL
+                   AND p2.id IN (SELECT paper_id FROM tags WHERE tag IN (${placeholders}))
+                 ORDER BY p2.first_seen DESC
+                 LIMIT ?
+               )
+             )
+           ORDER BY p.first_seen DESC`
         )
-        .bind(...tags, per * 4)
+        .bind(...tags, ...tags, per * 4)
         .all();
       s.papers = (results || []).map((r) => ({ ...r, tags: r.tags ? r.tags.split("|") : [] }));
     }

@@ -61,7 +61,7 @@ const KNOWN_TERMS = [
   "adhd AND nicotine", "ADHD and Nicotine", "ADHD",
   "Assortative Mating", "Intersexual Selection", "Mate Choice",
   "Genetics", "Attraction", "Intrasexual Competition",
-  "Health (overall)", "Essential Oil",
+  "Health (overall)", "Essential Oil", "Fluoride", "β-Casomorphin-7", "ß-Casomorphin-7", "BCM-7",
   "Sunlight OR Red Light OR Vitamin D OR Blue Light", "Sunlight", "Red Light", "Vitamin D", "Blue Light",
   "Meditation",
   '"Śūnyatā" OR "Śūnya"', "Śūnyatā OR Śūnya", "Śūnyatā", "Śūnya",
@@ -170,6 +170,9 @@ const TERM_ALIASES = {
   "compassion and politeness": "Big Ten",
   "industriousness": "Big Ten",
   "testosterone": "Testosterone",
+  "ß-casomorphin-7": "β-Casomorphin-7",
+  "bcm-7": "β-Casomorphin-7",
+  "bcm7": "β-Casomorphin-7",
   "dreams and consciousness": "Dreams",
   "dimethyltryptamine": "Dreams",
   "dreams and memory consolidation": "Dreams",
@@ -211,6 +214,8 @@ const CANONICAL_TAGS = [
   "Śūnyatā",
   "Testosterone",
   "Coronavirus",
+  "Fluoride",
+  "β-Casomorphin-7",
   "Dreams",
 ];
 

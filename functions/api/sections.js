@@ -88,6 +88,9 @@ const TERM_ALIASES = {
   "compassion and politeness": "Big Ten",
   "industriousness": "Big Ten",
   "testosterone": "Testosterone",
+  "ß-casomorphin-7": "β-Casomorphin-7",
+  "bcm-7": "β-Casomorphin-7",
+  "bcm7": "β-Casomorphin-7",
   "dreams and consciousness": "Dreams",
   "dimethyltryptamine": "Dreams",
   "dreams and memory consolidation": "Dreams",
@@ -128,6 +131,8 @@ const CANONICAL_TAGS = [
   "Śūnyatā",
   "Testosterone",
   "Coronavirus",
+  "Fluoride",
+  "β-Casomorphin-7",
   "Dreams",
 ];
 

@@ -61,11 +61,12 @@ const KNOWN_TERMS = [
   "adhd AND nicotine", "ADHD and Nicotine", "ADHD",
   "Assortative Mating", "Intersexual Selection", "Mate Choice",
   "Genetics", "Attraction", "Intrasexual Competition",
-  "Health (overall)", "Essential Oil", "Fluoride", "β-Casomorphin-7", "ß-Casomorphin-7", "BCM-7",
+  "Health (overall)", "Essential Oil", "Fluoride", "β-Casomorphin-7", "ß-Casomorphin-7", "BCM-7", "Cobalamin", "Vitamin B12", "Memory",
   "Sunlight OR Red Light OR Vitamin D OR Blue Light", "Sunlight", "Red Light", "Vitamin D", "Blue Light",
   "Meditation",
   '"Śūnyatā" OR "Śūnya"', "Śūnyatā OR Śūnya", "Śūnyatā", "Śūnya",
-  "dreams", "dreams AND consciousness", "Dimethyltryptamine", "dreams AND memory consolidation", "memory consolidation", "sleep AND neuroplasticity", "sleep AND reverse-learning", "psilocybin"
+  "dreams", "dreams AND consciousness", "Dimethyltryptamine", "dreams AND memory consolidation", "memory consolidation", "sleep AND neuroplasticity", "sleep AND reverse-learning", "psilocybin",
+  "Environment"
 ];
 
 // Map variant spellings to one canonical tag so they share a section.
@@ -173,6 +174,9 @@ const TERM_ALIASES = {
   "ß-casomorphin-7": "β-Casomorphin-7",
   "bcm-7": "β-Casomorphin-7",
   "bcm7": "β-Casomorphin-7",
+  "vitamin b12": "Cobalamin",
+  "vitamin-b12": "Cobalamin",
+  "cobalamin": "Cobalamin",
   "dreams and consciousness": "Dreams",
   "dimethyltryptamine": "Dreams",
   "dreams and memory consolidation": "Dreams",
@@ -216,7 +220,10 @@ const CANONICAL_TAGS = [
   "Coronavirus",
   "Fluoride",
   "β-Casomorphin-7",
+  "Cobalamin",
+  "Memory",
   "Dreams",
+  "Environment",
 ];
 
 // For cosmetic use only - can delete this const freely
@@ -789,11 +796,23 @@ async function upsertPaper(db, p, tag, subject) {
   if (!row) return;
 
   const storedTag = canonical(tag);
-  await db
-    .prepare(`INSERT INTO tags (paper_id, tag) VALUES (?, ?)
-              ON CONFLICT(paper_id, tag) DO NOTHING`)
-    .bind(row.id, storedTag)
-    .run();
+  // Retry the tag insert — the paper row above is already committed, so a
+  // transient failure here would otherwise leave a permanently tag-less paper.
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await db
+        .prepare(`INSERT INTO tags (paper_id, tag) VALUES (?, ?)
+                  ON CONFLICT(paper_id, tag) DO NOTHING`)
+        .bind(row.id, storedTag)
+        .run();
+      lastErr = null;
+      break;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  if (lastErr) throw lastErr;
 }
 
 /* ------------------------- maintenance ------------------------- */

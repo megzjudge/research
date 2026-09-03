@@ -91,6 +91,9 @@ const TERM_ALIASES = {
   "ß-casomorphin-7": "β-Casomorphin-7",
   "bcm-7": "β-Casomorphin-7",
   "bcm7": "β-Casomorphin-7",
+  "vitamin b12": "Cobalamin",
+  "vitamin-b12": "Cobalamin",
+  "cobalamin": "Cobalamin",
   "dreams and consciousness": "Dreams",
   "dimethyltryptamine": "Dreams",
   "dreams and memory consolidation": "Dreams",
@@ -133,7 +136,10 @@ const CANONICAL_TAGS = [
   "Coronavirus",
   "Fluoride",
   "β-Casomorphin-7",
+  "Cobalamin",
+  "Memory",
   "Dreams",
+  "Environment",
 ];
 
 function canonicalTag(tag) {

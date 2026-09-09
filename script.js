@@ -40,11 +40,11 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Psychology",
-    tags: ["Big Five", "Big Ten", "Intelligence Quotient", "MBTI", "HEXACO", "Indian Psychology"],
+    tags: ["Big Five", "Big Ten", "Intelligence Quotient", "MBTI", "HEXACO", "Indian Psychology", "Psychological Projection"],
   },
   {
     banner: "Deviancy",
-    tags: ["Dark Triad", "ADHD", "Bisexuality", "Sociosexuality", "High Sex Drive"],
+    tags: ["Dark Triad", "ADHD", "Bisexuality", "Sociosexuality"],
   },
   {
     banner: "Breeding",
@@ -52,11 +52,11 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Health",
-    tags: ["Sunlight", "Health (overall)", "Essential Oil", "Testosterone", "Coronavirus", "Fluoride", "β-Casomorphin-7", "Cobalamin", "Memory"],
+    tags: ["Sunlight", "Health (overall)", "Essential Oil", "Testosterone", "Coronavirus", "Fluoride", "β-Casomorphin-7", "Cobalamin", "Memory", "Gemstones"],
   },
   {
     banner: "Specifics",
-    tags: ["Followed Authors"],
+    tags: ["Legal", "Followed Authors"],
   },
 ];
 
@@ -85,6 +85,7 @@ const TERM_ALIASES = {
   "sattva": "Indian Psychology",
   "atman": "Indian Psychology",
   "indian": "Indian Psychology",
+  "tarot": "Psychological Projection",
   "experimental philosophy": "Experimental Philosophy",
   "philosophy of mind": "Experimental Philosophy",
   "metaphysics": "Experimental Philosophy",
@@ -129,7 +130,7 @@ const TERM_ALIASES = {
   "jordan b peterson": "Followed Authors",
   "adhd and nicotine": "ADHD",
   "adhd": "ADHD",
-  "high sex drive": "High Sex Drive",
+  "high sex drive": "Sociosexuality",
   "iq": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
   "intelligence quotient": "Intelligence Quotient",
@@ -192,9 +193,9 @@ const CANONICAL_TAGS = [
   "Followed Authors",
   "Intelligence Quotient",
   "ADHD",
-  "High Sex Drive",
   "Bisexuality",
   "Sociosexuality",
+  "Psychological Projection",
   "Mate Choice",
   "Genetics",
   "Attraction",
@@ -210,8 +211,10 @@ const CANONICAL_TAGS = [
   "β-Casomorphin-7",
   "Cobalamin",
   "Memory",
+  "Gemstones",
   "Dreams",
   "Environment",
+  "Legal",
 ];
 
 function canonical(tag) {
@@ -256,6 +259,8 @@ const TAG_DISPLAY_LABELS = {
   "Sunlight": "Sunlight / Red Light / Vitamin D / Blue Light",
   "Śūnyatā": "Śūnyatā / Śūnya",
   "ADHD": "ADHD / ADHD and Nicotine",
+  "Sociosexuality": "Sociosexuality / High Sex Drive",
+  "Psychological Projection": "Psychological Projection / Tarot",
 };
 
 // Rail-only short labels — shown in sidebar but NOT in the main content heading

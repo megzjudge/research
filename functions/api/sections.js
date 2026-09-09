@@ -31,6 +31,7 @@ const TERM_ALIASES = {
   "sattva": "Indian Psychology",
   "atman": "Indian Psychology",
   "indian": "Indian Psychology",
+  "tarot": "Psychological Projection",
   "experimental philosophy": "Experimental Philosophy",
   "philosophy of mind": "Experimental Philosophy",
   "metaphysics": "Experimental Philosophy",
@@ -75,7 +76,7 @@ const TERM_ALIASES = {
   "jordan b peterson": "Followed Authors",
   "adhd and nicotine": "ADHD",
   "adhd": "ADHD",
-  "high sex drive": "High Sex Drive",
+  "high sex drive": "Sociosexuality",
   "iq": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
   "intelligence quotient": "Intelligence Quotient",
@@ -120,9 +121,9 @@ const CANONICAL_TAGS = [
   "Followed Authors",
   "Intelligence Quotient",
   "ADHD",
-  "High Sex Drive",
   "Bisexuality",
   "Sociosexuality",
+  "Psychological Projection",
   "Mate Choice",
   "Genetics",
   "Attraction",
@@ -138,8 +139,10 @@ const CANONICAL_TAGS = [
   "β-Casomorphin-7",
   "Cobalamin",
   "Memory",
+  "Gemstones",
   "Dreams",
   "Environment",
+  "Legal",
 ];
 
 function canonicalTag(tag) {

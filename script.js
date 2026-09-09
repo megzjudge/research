@@ -460,16 +460,11 @@ function renderAll(sections) {
 
     const { compact: compactPapers } = splitPapers(s.papers || []);
     const readCount = compactPapers.length;
-    // s.papers only includes a capped sample of unread papers (see sections.js),
-    // so derive the true unread total from the section's real count instead.
-    const unreadCount = Math.max(s.count - readCount, 0);
 
     const moreLinks = [
       s.count > FETCH ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "",
-      // Only worth a separate link when it actually differs from "view all" —
-      // if everything (or nothing) has been read, one side === the total.
-      (unreadCount > 0 && readCount > 0) ? `<a class="sec-more" href="#" data-all-unread="${esc(s.tag)}">see all unread (${unreadCount}) →</a>` : "",
-      (readCount > 0 && unreadCount > 0) ? `<a class="sec-more" href="#" data-all-read="${esc(s.tag)}">see all read (${readCount}) →</a>` : "",
+      // Skip when it'd just duplicate "view all" (everything in the section is read).
+      (readCount > 0 && readCount < s.count) ? `<a class="sec-more" href="#" data-all-read="${esc(s.tag)}">see all read (${readCount}) →</a>` : "",
     ].filter(Boolean).join("");
 
     const body = s.count === 0
@@ -707,7 +702,7 @@ elSections.addEventListener("click", async (e) => {
     const prevShown = pageState.shown || 0;
     if (pageState.kind === "trash") runTrash(limit, prevShown);
     else if (pageState.kind === "screenshots") runScreenshots(limit, prevShown);
-    else runSearch(pageState.q, pageState.tag, pageState.read, limit, prevShown);
+    else runSearch(pageState.q, pageState.tag, pageState.readOnly, limit, prevShown);
     return;
   }
 
@@ -943,10 +938,7 @@ function wireSectionActions() {
     a.onclick = (e) => { e.preventDefault(); elQ.value = ""; runSearch("", a.getAttribute("data-all")); };
   });
   elSections.querySelectorAll("[data-all-read]").forEach(a => {
-    a.onclick = (e) => { e.preventDefault(); elQ.value = ""; runSearch("", a.getAttribute("data-all-read"), 1); };
-  });
-  elSections.querySelectorAll("[data-all-unread]").forEach(a => {
-    a.onclick = (e) => { e.preventDefault(); elQ.value = ""; runSearch("", a.getAttribute("data-all-unread"), 0); };
+    a.onclick = (e) => { e.preventDefault(); elQ.value = ""; runSearch("", a.getAttribute("data-all-read"), true); };
   });
 }
 
@@ -959,19 +951,18 @@ elQ.addEventListener("input", () => {
   }, 220);
 });
 
-async function runSearch(q, tag, read = null, limit = 100, prevShown = 0) {
+async function runSearch(q, tag, readOnly = false, limit = 100, prevShown = 0) {
   setView("search");
   elStatus.textContent = "searching…";
   const params = new URLSearchParams({ limit });
   if (q)   params.set("q",   q);
   if (tag) params.set("tag", tag);
-  if (read === 1 || read === 0) params.set("read", String(read));
+  if (readOnly) params.set("read", "1");
   try {
     const r = await fetch("/api/papers?" + params);
     const { papers = [], total = 0 } = await r.json();
-    pageState = { kind: "search", q, tag: tag || "", read, limit, shown: papers.length };
-    const suffix = read === 1 ? " — read" : read === 0 ? " — unread" : "";
-    const heading = tag ? `${prettyLabel(tag)}${suffix}` : "Search";
+    pageState = { kind: "search", q, tag: tag || "", readOnly, limit, shown: papers.length };
+    const heading = tag ? `${prettyLabel(tag)}${readOnly ? " — read" : ""}` : "Search";
     const bar = paginationBar(papers.length, total);
     elSections.innerHTML = `
       <section class="section">

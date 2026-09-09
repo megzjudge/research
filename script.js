@@ -467,9 +467,9 @@ function renderAll(sections) {
     const moreLinks = [
       s.count > FETCH ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "",
       // Only worth a separate link when it actually differs from "view all" —
-      // if nothing's been read yet, unread === everything.
+      // if everything (or nothing) has been read, one side === the total.
       (unreadCount > 0 && readCount > 0) ? `<a class="sec-more" href="#" data-all-unread="${esc(s.tag)}">see all unread (${unreadCount}) →</a>` : "",
-      readCount > 0 ? `<a class="sec-more" href="#" data-all-read="${esc(s.tag)}">see all read (${readCount}) →</a>` : "",
+      (readCount > 0 && unreadCount > 0) ? `<a class="sec-more" href="#" data-all-read="${esc(s.tag)}">see all read (${readCount}) →</a>` : "",
     ].filter(Boolean).join("");
 
     const body = s.count === 0

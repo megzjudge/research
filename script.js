@@ -458,9 +458,11 @@ function renderAll(sections) {
     sec.className = "section";
     sec.id = slug(s.tag);
 
-    const { main: mainPapers, compact: compactPapers } = splitPapers(s.papers || []);
+    const { compact: compactPapers } = splitPapers(s.papers || []);
     const readCount = compactPapers.length;
-    const unreadCount = mainPapers.length;
+    // s.papers only includes a capped sample of unread papers (see sections.js),
+    // so derive the true unread total from the section's real count instead.
+    const unreadCount = Math.max(s.count - readCount, 0);
 
     const moreLinks = [
       s.count > FETCH ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "",

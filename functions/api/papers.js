@@ -24,7 +24,7 @@ export async function onRequestGet({ request, env }) {
   const q = (url.searchParams.get("q") || "").trim();
   const tag = (url.searchParams.get("tag") || "").trim();
   const status = (url.searchParams.get("status") || "").trim();
-  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50", 10), 200);
+  const limit = Math.max(parseInt(url.searchParams.get("limit") || "50", 10) || 50, 1);
   const offset = Math.max(parseInt(url.searchParams.get("offset") || "0", 10), 0);
 
   const where = [];

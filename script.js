@@ -466,7 +466,9 @@ function renderAll(sections) {
 
     const moreLinks = [
       s.count > FETCH ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "",
-      unreadCount > 0 ? `<a class="sec-more" href="#" data-all-unread="${esc(s.tag)}">see all unread (${unreadCount}) →</a>` : "",
+      // Only worth a separate link when it actually differs from "view all" —
+      // if nothing's been read yet, unread === everything.
+      (unreadCount > 0 && readCount > 0) ? `<a class="sec-more" href="#" data-all-unread="${esc(s.tag)}">see all unread (${unreadCount}) →</a>` : "",
       readCount > 0 ? `<a class="sec-more" href="#" data-all-read="${esc(s.tag)}">see all read (${readCount}) →</a>` : "",
     ].filter(Boolean).join("");
 
@@ -600,7 +602,7 @@ function shotHtml(p) {
   return `<div class="cardshots">${btns}</div>`;
 }
 
-function cardHtml(p, compact) {
+function cardHtml(p, compact, isNew = false) {
   const canonTags = [...new Set((p.tags || []).map(t => canonical(t)))];
   const chips = canonTags.map(c =>
     `<button class="tagchip" data-tag="${esc(c)}" data-id="${p.id || ""}">${prettyLabel(c)}</button>`
@@ -617,7 +619,7 @@ function cardHtml(p, compact) {
        </span>`
     : "";
   const tags = (!compact && (chips || plus)) ? `<span class="cardtags">${chips}${plus}</span>` : "";
-  const cls = compact ? "cardx cardx-compact" : "cardx";
+  const cls = (compact ? "cardx cardx-compact" : "cardx") + (isNew ? " card-new" : "");
   const shot = shotHtml(p);
   return `<article class="${cls}">
     <a class="ttl" href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.title)}</a>
@@ -702,9 +704,10 @@ elSections.addEventListener("click", async (e) => {
     e.preventDefault();
     if (!pageState) return;
     const limit = pageState.limit + 100;
-    if (pageState.kind === "trash") runTrash(limit);
-    else if (pageState.kind === "screenshots") runScreenshots(limit);
-    else runSearch(pageState.q, pageState.tag, pageState.read, limit);
+    const prevShown = pageState.shown || 0;
+    if (pageState.kind === "trash") runTrash(limit, prevShown);
+    else if (pageState.kind === "screenshots") runScreenshots(limit, prevShown);
+    else runSearch(pageState.q, pageState.tag, pageState.read, limit, prevShown);
     return;
   }
 
@@ -956,9 +959,8 @@ elQ.addEventListener("input", () => {
   }, 220);
 });
 
-async function runSearch(q, tag, read = null, limit = 100) {
+async function runSearch(q, tag, read = null, limit = 100, prevShown = 0) {
   setView("search");
-  pageState = { kind: "search", q, tag: tag || "", read, limit };
   elStatus.textContent = "searching…";
   const params = new URLSearchParams({ limit });
   if (q)   params.set("q",   q);
@@ -967,13 +969,14 @@ async function runSearch(q, tag, read = null, limit = 100) {
   try {
     const r = await fetch("/api/papers?" + params);
     const { papers = [], total = 0 } = await r.json();
+    pageState = { kind: "search", q, tag: tag || "", read, limit, shown: papers.length };
     const suffix = read === 1 ? " — read" : read === 0 ? " — unread" : "";
     const heading = tag ? `${prettyLabel(tag)}${suffix}` : "Search";
     const bar = paginationBar(papers.length, total);
     elSections.innerHTML = `
       <section class="section">
         <div class="sechead"><h2>${heading}</h2>${bar}</div>
-        <div class="grid">${papers.map((p) => cardHtml(p, false)).join("")}</div>
+        <div class="grid">${papers.map((p, i) => cardHtml(p, false, i >= prevShown)).join("")}</div>
         <div class="sechead-bottom">${bar}</div>
       </section>`;
     elStatus.textContent = papers.length ? "" : "Nothing matched.";
@@ -983,18 +986,18 @@ async function runSearch(q, tag, read = null, limit = 100) {
   }
 }
 
-async function runTrash(limit = 200) {
+async function runTrash(limit = 200, prevShown = 0) {
   setView("trash");
-  pageState = { kind: "trash", limit };
   elStatus.textContent = "loading trash…";
   try {
     const r = await fetch(`/api/papers?status=trash&limit=${limit}`);
     const { papers = [], total = 0 } = await r.json();
+    pageState = { kind: "trash", limit, shown: papers.length };
     const bar = paginationBar(papers.length, total);
     elSections.innerHTML = `
       <section class="section">
         <div class="sechead"><h2>Trash</h2>${bar}</div>
-        <div class="grid">${papers.map((p) => cardHtml(p, false)).join("")}</div>
+        <div class="grid">${papers.map((p, i) => cardHtml(p, false, i >= prevShown)).join("")}</div>
         <div class="sechead-bottom">${bar}</div>
       </section>`;
     elStatus.textContent = papers.length ? "" : "Trash is empty.";
@@ -1005,8 +1008,8 @@ async function runTrash(limit = 200) {
   }
 }
 
-function screenshotItemHtml(paperId, title, src) {
-  return `<article class="shotitem" data-shot-paper="${paperId}" data-shot-path="${esc(src)}">
+function screenshotItemHtml(paperId, title, src, isNew = false) {
+  return `<article class="shotitem${isNew ? " card-new" : ""}" data-shot-paper="${paperId}" data-shot-path="${esc(src)}">
     <button type="button" class="shotthumb" data-lightbox="${esc(src)}" aria-label="preview screenshot">
       <img src="${esc(imgSrc(src))}" alt="" loading="lazy" decoding="async" />
     </button>
@@ -1015,19 +1018,19 @@ function screenshotItemHtml(paperId, title, src) {
   </article>`;
 }
 
-async function runScreenshots(limit = 500) {
+async function runScreenshots(limit = 500, prevShown = 0) {
   setView("screenshots");
-  pageState = { kind: "screenshots", limit };
   elStatus.textContent = "loading screenshots…";
   try {
     const r = await fetch(`/api/papers?has_screenshot=1&limit=${limit}`);
     const { papers = [], total = 0 } = await r.json();
+    pageState = { kind: "screenshots", limit, shown: papers.length };
     const items = [];
-    for (const p of papers) {
+    papers.forEach((p, i) => {
       for (const src of parseScreenshots(p.screenshot)) {
-        items.push(screenshotItemHtml(p.id, p.title, src));
+        items.push(screenshotItemHtml(p.id, p.title, src, i >= prevShown));
       }
-    }
+    });
     const bar = paginationBar(papers.length, total);
     elSections.innerHTML = `
       <section class="section">

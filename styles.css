@@ -107,6 +107,12 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .sechead-close { font-size: 20px; }
 .sechead-bottom { display: flex; justify-content: flex-end; padding-top: 14px; border-top: 2px solid var(--accent-bar); margin-top: 20px; }
 
+@keyframes card-new-fade {
+  from { background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
+  to   { background: var(--card); box-shadow: none; }
+}
+.card-new { animation: card-new-fade 2.5s ease-out; }
+
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .cardx { background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 16px 16px 14px; display: flex; flex-direction: column; transition: border-color .12s, transform .12s; }
 .cardx:hover { border-color: var(--line-strong); transform: translateY(-1px); }

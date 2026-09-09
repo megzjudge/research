@@ -21,7 +21,6 @@ const elTrashLink  = document.getElementById("trashlink");
 const elTrashCount = document.getElementById("trashcount");
 const elShotsLink  = document.getElementById("shotslink");
 const elShotsCount = document.getElementById("shotscount");
-const elHomeLink   = document.getElementById("homelink");
 const elLightbox   = document.getElementById("lightbox");
 const elLightboxImg = document.getElementById("lightbox-img");
 const elToast      = document.getElementById("toast");
@@ -338,19 +337,26 @@ elShotsLink?.addEventListener("click", (e) => {
 
 function setView(v) {
   // Capture where the user was on the home page the moment they leave it,
-  // so the "all sections" link can put them back exactly there.
+  // so the section-header close button can put them back exactly there.
   if (view === "sections" && v !== "sections") savedScroll = window.scrollY;
   view = v;
-  if (elHomeLink) elHomeLink.hidden = v === "sections";
 }
 
-elHomeLink?.addEventListener("click", async (e) => {
-  e.preventDefault();
+let pageState = null; // { kind: 'search'|'trash'|'screenshots', q, tag, read, limit }
+
+function paginationBar(shown, total) {
+  const more = shown < total
+    ? `<button type="button" class="sechead-more" data-sec-more title="load 100 more">→</button>`
+    : "";
+  return `<span class="sechead-bar"><span class="count">${shown}/${total}</span>${more}<button type="button" class="sechead-close" data-sec-close title="back to all sections" aria-label="back to all sections">×</button></span>`;
+}
+
+async function goHome() {
   elQ.value = "";
   const target = savedScroll;
   await loadSections();
   window.scrollTo({ top: target, behavior: "auto" });
-});
+}
 
 async function loadSections() {
   setView("sections");
@@ -452,10 +458,13 @@ function renderAll(sections) {
     sec.className = "section";
     sec.id = slug(s.tag);
 
-    const readCount = splitPapers(s.papers || []).compact.length;
+    const { main: mainPapers, compact: compactPapers } = splitPapers(s.papers || []);
+    const readCount = compactPapers.length;
+    const unreadCount = mainPapers.length;
 
     const moreLinks = [
       s.count > FETCH ? `<a class="sec-more" href="#" data-all="${esc(s.tag)}">view all ${s.count} →</a>` : "",
+      unreadCount > 0 ? `<a class="sec-more" href="#" data-all-unread="${esc(s.tag)}">see all unread (${unreadCount}) →</a>` : "",
       readCount > 0 ? `<a class="sec-more" href="#" data-all-read="${esc(s.tag)}">see all read (${readCount}) →</a>` : "",
     ].filter(Boolean).join("");
 
@@ -679,6 +688,24 @@ async function editPaper(id, curTitle, curAuthors, curSnippet) {
 }
 
 elSections.addEventListener("click", async (e) => {
+  const closeBtn = e.target.closest("[data-sec-close]");
+  if (closeBtn) {
+    e.preventDefault();
+    goHome();
+    return;
+  }
+
+  const moreBtn = e.target.closest("[data-sec-more]");
+  if (moreBtn) {
+    e.preventDefault();
+    if (!pageState) return;
+    const limit = pageState.limit + 100;
+    if (pageState.kind === "trash") runTrash(limit);
+    else if (pageState.kind === "screenshots") runScreenshots(limit);
+    else runSearch(pageState.q, pageState.tag, pageState.read, limit);
+    return;
+  }
+
   const delBtn = e.target.closest("[data-delshot]");
   if (delBtn && view === "screenshots") {
     const paperId = +delBtn.getAttribute("data-delshot");
@@ -911,7 +938,10 @@ function wireSectionActions() {
     a.onclick = (e) => { e.preventDefault(); elQ.value = ""; runSearch("", a.getAttribute("data-all")); };
   });
   elSections.querySelectorAll("[data-all-read]").forEach(a => {
-    a.onclick = (e) => { e.preventDefault(); elQ.value = ""; runSearch("", a.getAttribute("data-all-read"), true); };
+    a.onclick = (e) => { e.preventDefault(); elQ.value = ""; runSearch("", a.getAttribute("data-all-read"), 1); };
+  });
+  elSections.querySelectorAll("[data-all-unread]").forEach(a => {
+    a.onclick = (e) => { e.preventDefault(); elQ.value = ""; runSearch("", a.getAttribute("data-all-unread"), 0); };
   });
 }
 
@@ -924,21 +954,25 @@ elQ.addEventListener("input", () => {
   }, 220);
 });
 
-async function runSearch(q, tag, readOnly = false) {
+async function runSearch(q, tag, read = null, limit = 100) {
   setView("search");
+  pageState = { kind: "search", q, tag: tag || "", read, limit };
   elStatus.textContent = "searching…";
-  const params = new URLSearchParams({ limit: 100 });
+  const params = new URLSearchParams({ limit });
   if (q)   params.set("q",   q);
   if (tag) params.set("tag", tag);
-  if (readOnly) params.set("read", "1");
+  if (read === 1 || read === 0) params.set("read", String(read));
   try {
     const r = await fetch("/api/papers?" + params);
-    const { papers = [] } = await r.json();
-    const heading = tag ? `${prettyLabel(tag)}${readOnly ? " — read" : ""}` : "Search";
+    const { papers = [], total = 0 } = await r.json();
+    const suffix = read === 1 ? " — read" : read === 0 ? " — unread" : "";
+    const heading = tag ? `${prettyLabel(tag)}${suffix}` : "Search";
+    const bar = paginationBar(papers.length, total);
     elSections.innerHTML = `
       <section class="section">
-        <div class="sechead"><h2>${heading}</h2><span class="count">${papers.length}</span></div>
+        <div class="sechead"><h2>${heading}</h2>${bar}</div>
         <div class="grid">${papers.map((p) => cardHtml(p, false)).join("")}</div>
+        <div class="sechead-bottom">${bar}</div>
       </section>`;
     elStatus.textContent = papers.length ? "" : "Nothing matched.";
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -947,16 +981,19 @@ async function runSearch(q, tag, readOnly = false) {
   }
 }
 
-async function runTrash() {
+async function runTrash(limit = 200) {
   setView("trash");
+  pageState = { kind: "trash", limit };
   elStatus.textContent = "loading trash…";
   try {
-    const r = await fetch("/api/papers?status=trash&limit=200");
-    const { papers = [] } = await r.json();
+    const r = await fetch(`/api/papers?status=trash&limit=${limit}`);
+    const { papers = [], total = 0 } = await r.json();
+    const bar = paginationBar(papers.length, total);
     elSections.innerHTML = `
       <section class="section">
-        <div class="sechead"><h2>Trash</h2><span class="count">${papers.length}</span></div>
+        <div class="sechead"><h2>Trash</h2>${bar}</div>
         <div class="grid">${papers.map((p) => cardHtml(p, false)).join("")}</div>
+        <div class="sechead-bottom">${bar}</div>
       </section>`;
     elStatus.textContent = papers.length ? "" : "Trash is empty.";
     updateTrashLink(papers.length);
@@ -976,23 +1013,26 @@ function screenshotItemHtml(paperId, title, src) {
   </article>`;
 }
 
-async function runScreenshots() {
+async function runScreenshots(limit = 500) {
   setView("screenshots");
+  pageState = { kind: "screenshots", limit };
   elStatus.textContent = "loading screenshots…";
   try {
-    const r = await fetch("/api/papers?has_screenshot=1&limit=500");
-    const { papers = [] } = await r.json();
+    const r = await fetch(`/api/papers?has_screenshot=1&limit=${limit}`);
+    const { papers = [], total = 0 } = await r.json();
     const items = [];
     for (const p of papers) {
       for (const src of parseScreenshots(p.screenshot)) {
         items.push(screenshotItemHtml(p.id, p.title, src));
       }
     }
+    const bar = paginationBar(papers.length, total);
     elSections.innerHTML = `
       <section class="section">
-        <div class="sechead"><h2>Screenshots</h2><span class="count">${items.length}</span></div>
+        <div class="sechead"><h2>Screenshots</h2>${bar}</div>
         <p class="shotshint">Review uploaded images. Click 🗑 to remove one from the site and database.</p>
         <div class="shotsgrid">${items.join("")}</div>
+        <div class="sechead-bottom">${bar}</div>
       </section>`;
     elStatus.textContent = items.length ? "" : "No screenshots uploaded yet.";
     updateShotsLink(items.length);

@@ -76,12 +76,16 @@ export async function onRequestGet({ request, env }) {
     ORDER BY ${orderSql}
     LIMIT ? OFFSET ?`;
 
+  const countSql = `SELECT COUNT(*) AS n FROM papers p ${whereSql}`;
+  const countBinds = [...binds];
   binds.push(limit, offset);
 
   try {
     const { results } = await env.research.prepare(sql).bind(...binds).all();
     const papers = (results || []).map(mapPaper);
-    return json({ papers, limit, offset });
+    const countRow = await env.research.prepare(countSql).bind(...countBinds).first();
+    const total = countRow ? countRow.n : papers.length;
+    return json({ papers, limit, offset, total });
   } catch (err) {
     return json({ error: String(err) }, 500);
   }

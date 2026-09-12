@@ -143,6 +143,8 @@ const CANONICAL_TAGS = [
   "Dreams",
   "Environment",
   "Legal",
+  "Society",
+  "Psych Miscellaneous",
 ];
 
 function canonicalTag(tag) {

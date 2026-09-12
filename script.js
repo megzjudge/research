@@ -39,7 +39,7 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Psychology",
-    tags: ["Big Five", "Big Ten", "Intelligence Quotient", "MBTI", "HEXACO", "Indian Psychology", "Psychological Projection"],
+    tags: ["Big Five", "Big Ten", "Intelligence Quotient", "MBTI", "HEXACO", "Indian Psychology", "Psychological Projection", "Psych Miscellaneous"],
   },
   {
     banner: "Deviancy",
@@ -55,7 +55,7 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Specifics",
-    tags: ["Legal", "Followed Authors"],
+    tags: ["Legal", "Society", "Followed Authors"],
   },
 ];
 
@@ -214,6 +214,8 @@ const CANONICAL_TAGS = [
   "Dreams",
   "Environment",
   "Legal",
+  "Society",
+  "Psych Miscellaneous",
 ];
 
 function canonical(tag) {

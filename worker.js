@@ -53,7 +53,7 @@ const KNOWN_TERMS = [
   "Dark Tetrad", "Dark Triad", "Machiavellianism",
   "Industriousness",
   "Big Five", "Big 5", "MBTI", "Myers-Briggs", "Myers Briggs",
-  "HEXACO", "Sociosexuality", "high sex drive", "Honesty-Humility", "Psychological Projection", "Tarot", "Gemstones", "Legal",
+  "HEXACO", "Sociosexuality", "high sex drive", "Honesty-Humility", "Psychological Projection", "Tarot", "Gemstones", "Legal", "Society", "Psych Miscellaneous",
   "Bisexual women", "Bisexuality", "Bisexual",
   "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Language", "Philosophy of Religion",
   "Rupert Sheldrake", "Emil Kirkegaard", "Paul Eastwick", "Noah Carl", "Diana Fleischman", "Bo Winegard", "Edward Dutton", "Nathan Cofnas", "Sebastian Jensen", "Philip Zimbardo", "David Buss", "Jonathan Haidt", "Michael Shellenberger", "Rob Henderson", "Peter Boghossian", "John McWhorter", "Amishi Jha", "Richard J. Haier", "David Puts", "Robert Plomin", "Camille Paglia", "David Ley", "James Cantor", "Nicole Prause", "J. Michael Bailey", "Glenn Loury", "Dan Ariely", "Robert Malone", "Rainer Kaiser", "Delroy Paulhus", "Peter A McCullough", "DM Buss", "DM Bus", "Richard Hanania", "Lex Fridman", "Jordan B Peterson",
@@ -227,6 +227,8 @@ const CANONICAL_TAGS = [
   "Dreams",
   "Environment",
   "Legal",
+  "Society",
+  "Psych Miscellaneous",
 ];
 
 // For cosmetic use only - can delete this const freely

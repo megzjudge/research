@@ -84,7 +84,11 @@ const TERM_ALIASES = {
   "sattva": "Indian Psychology",
   "atman": "Indian Psychology",
   "indian": "Indian Psychology",
+  "cellular memory": "Psychological Projection",
   "tarot": "Psychological Projection",
+  "death": "Psychological Projection",
+  "bitcoin": "Society",
+  "gaming": "Society",
   "experimental philosophy": "Experimental Philosophy",
   "philosophy of mind": "Experimental Philosophy",
   "metaphysics": "Experimental Philosophy",
@@ -261,7 +265,8 @@ const TAG_DISPLAY_LABELS = {
   "Śūnyatā": "Śūnyatā / Śūnya",
   "ADHD": "ADHD / ADHD and Nicotine",
   "Sociosexuality": "Sociosexuality / High Sex Drive",
-  "Psychological Projection": "Psychological Projection / Tarot",
+  "Psychological Projection": "Psychological Projection / Cellular Memory / Tarot / Death",
+  "Society": "Society / Bitcoin / Gaming",
 };
 
 // Rail-only short labels — shown in sidebar but NOT in the main content heading
@@ -1024,7 +1029,15 @@ async function runScreenshots(limit = 500, prevShown = 0) {
         items.push(screenshotItemHtml(p.id, p.title, src, i >= prevShown));
       }
     });
-    const bar = paginationBar(papers.length, total);
+    // Pagination operates on papers, but the grid shows individual screenshots
+    // (a paper can have several) — so the count shown here is images, not papers.
+    // We only know the true image total once every matching paper is loaded.
+    const moreAvailable = papers.length < total;
+    const suffix = moreAvailable ? "+" : "";
+    const more = moreAvailable
+      ? `<button type="button" class="sechead-more" data-sec-more title="load 100 more">→</button>`
+      : "";
+    const bar = `<span class="sechead-bar"><span class="count">${items.length}${suffix}/${items.length}${suffix}</span>${more}<button type="button" class="sechead-close" data-sec-close title="back to all sections" aria-label="back to all sections">×</button></span>`;
     elSections.innerHTML = `
       <section class="section">
         <div class="sechead"><h2>Screenshots</h2>${bar}</div>

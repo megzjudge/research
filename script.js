@@ -14,6 +14,7 @@ const elStudyForm  = document.getElementById("studyform");
 const elStudyTitle = document.getElementById("studytitle");
 const elStudyAuthor = document.getElementById("studyauthor");
 const elStudySnip  = document.getElementById("studysnip");
+const elStudyArchive = document.getElementById("studyarchive");
 const elStudyTag   = document.getElementById("studytag");
 const elStudySubmit = document.getElementById("studysubmit");
 const elStudyCancel = document.getElementById("studycancel");
@@ -51,11 +52,11 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Health",
-    tags: ["Sunlight", "Health (overall)", "Essential Oil", "Testosterone", "Coronavirus", "Fluoride", "β-Casomorphin-7", "Cobalamin", "Memory", "Gemstones"],
+    tags: ["Sunlight", "Health (overall)", "Essential Oil", "Testosterone", "Coronavirus", "Fluoride", "β-Casomorphin-7", "Cobalamin", "Gemstones"],
   },
   {
     banner: "Specifics",
-    tags: ["Legal", "Society", "Followed Authors"],
+    tags: ["Society", "Followed Authors"],
   },
 ];
 
@@ -87,8 +88,15 @@ const TERM_ALIASES = {
   "cellular memory": "Psychological Projection",
   "tarot": "Psychological Projection",
   "death": "Psychological Projection",
+  "language": "Society",
+  "legal": "Society",
   "bitcoin": "Society",
+  "it": "Society",
+  "urbanisation": "Society",
+  "urbanization": "Society",
   "gaming": "Society",
+  "memory": "Psych Miscellaneous",
+  "consciousness": "Psych Miscellaneous",
   "experimental philosophy": "Experimental Philosophy",
   "philosophy of mind": "Experimental Philosophy",
   "metaphysics": "Experimental Philosophy",
@@ -213,11 +221,9 @@ const CANONICAL_TAGS = [
   "Fluoride",
   "β-Casomorphin-7",
   "Cobalamin",
-  "Memory",
   "Gemstones",
   "Dreams",
   "Environment",
-  "Legal",
   "Society",
   "Psych Miscellaneous",
 ];
@@ -266,7 +272,8 @@ const TAG_DISPLAY_LABELS = {
   "ADHD": "ADHD / ADHD and Nicotine",
   "Sociosexuality": "Sociosexuality / High Sex Drive",
   "Psychological Projection": "Psychological Projection / Cellular Memory / Tarot / Death",
-  "Society": "Society / Bitcoin / Gaming",
+  "Society": "Society / Language / Legal / IT / Urbanisation / Gaming / Bitcoin",
+  "Psych Miscellaneous": "Psych Miscellaneous / Memory / Consciousness",
 };
 
 // Rail-only short labels — shown in sidebar but NOT in the main content heading
@@ -309,6 +316,13 @@ function prettyLabel(raw) {
     })
     .filter(Boolean)
     .join(" ");
+}
+
+function formatDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso.replace(" ", "T") + "Z");
+  if (isNaN(d)) return "";
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
 function ago(iso){
@@ -623,7 +637,8 @@ function cardHtml(p, compact, isNew = false) {
   const tags = (!compact && (chips || plus)) ? `<span class="cardtags">${chips}${plus}</span>` : "";
   const cls = (compact ? "cardx cardx-compact" : "cardx") + (isNew ? " card-new" : "");
   const shot = shotHtml(p);
-  return `<article class="${cls}">
+  const readTitle = isRead(p) ? ` title="Read ${esc(formatDate(p.read_at))}"` : "";
+  return `<article class="${cls}"${readTitle}>
     <a class="ttl" href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.title)}</a>
     ${compact ? "" : (p.authors ? `<p class="auth">${esc(p.authors)}</p>` : "")}
     ${compact ? "" : (p.snippet ? `<p class="snip">${esc(p.snippet)}</p>` : "")}
@@ -644,7 +659,7 @@ function sciHubUrl(title) {
 
 function cardActs(p) {
   const sciBtn = p.title
-    ? `<a class="scihubbtn" href="${esc(sciHubUrl(p.title))}" target="_blank" rel="noopener noreferrer" title="Sci-Hub" aria-label="Sci-Hub">SH</a>`
+    ? `<a class="scihubbtn" href="${esc(sciHubUrl(p.title))}" target="_blank" rel="noopener noreferrer" title="Find Full Article on Sci-Hub" aria-label="Find Full Article on Sci-Hub">SH</a>`
     : "";
   if (!p.id) return sciBtn ? `<span class="cardacts">${sciBtn}</span>` : "";
   if (p.status === "trash") {
@@ -654,7 +669,10 @@ function cardActs(p) {
     </span>`;
   }
   const linkBtn = `<button class="urlbtn" data-editurl="${p.id}" data-link="${esc(p.link)}" title="replace link" aria-label="replace link">↗</button>`;
-  const editBtn = `<button class="editbtn" data-editpaper="${p.id}" title="edit title/author/description" aria-label="edit">✎</button>`;
+  const archiveBtn = p.archive_link
+    ? `<a class="scihubbtn" href="${esc(p.archive_link)}" target="_blank" rel="noopener noreferrer" title="Archive link" aria-label="Archive link">🗄</a>`
+    : "";
+  const editBtn = `<button class="editbtn" data-editpaper="${p.id}" data-archive="${esc(p.archive_link || "")}" title="edit title/author/description/archive link" aria-label="edit">✎</button>`;
   const uploadBtn = `<button class="uploadbtn" data-upload="${p.id}" title="upload screenshot(s)" aria-label="upload screenshot(s)">+</button>`;
   const trashBtn = `<button data-pstatus="trash" data-id="${p.id}" title="trash" aria-label="trash">✕</button>`;
   const starBtn = isStarred(p)
@@ -663,10 +681,10 @@ function cardActs(p) {
   const readBtn = isRead(p)
     ? `<button class="readbtn on" data-read="${p.id}" data-on="0" title="mark unread" aria-label="mark unread">R</button>`
     : `<button class="readbtn" data-read="${p.id}" data-on="1" title="read" aria-label="read">R</button>`;
-  return `<span class="cardacts">${sciBtn}${linkBtn}${editBtn}${uploadBtn}${trashBtn}${starBtn}${readBtn}</span>`;
+  return `<span class="cardacts">${sciBtn}${archiveBtn}${linkBtn}${editBtn}${uploadBtn}${trashBtn}${starBtn}${readBtn}</span>`;
 }
 
-async function editPaper(id, curTitle, curAuthors, curSnippet) {
+async function editPaper(id, curTitle, curAuthors, curSnippet, curArchive) {
   const title = window.prompt("Title:", curTitle);
   if (title === null) return;
   if (!title.trim()) { showToast("Title can't be empty.", false); return; }
@@ -677,12 +695,20 @@ async function editPaper(id, curTitle, curAuthors, curSnippet) {
   const snippet = window.prompt("Description:", curSnippet);
   if (snippet === null) return;
 
+  const archiveLink = window.prompt("Archive link (optional):", curArchive || "");
+  if (archiveLink === null) return;
+  if (archiveLink.trim() && !/^https?:\/\//i.test(archiveLink.trim())) {
+    showToast("Archive link must start with http:// or https://", false);
+    return;
+  }
+
   const r = await postWrite("/api/papers", {
     action: "edit",
     id,
     title: title.trim(),
     authors: authors.trim(),
     snippet: snippet.trim(),
+    archive_link: archiveLink.trim(),
   });
   if (r && r.ok) {
     showToast("Paper updated.");
@@ -782,7 +808,8 @@ elSections.addEventListener("click", async (e) => {
     const curTitle   = card?.querySelector(".ttl")?.textContent || "";
     const curAuthors = card?.querySelector(".auth")?.textContent || "";
     const curSnippet = card?.querySelector(".snip")?.textContent || "";
-    await editPaper(id, curTitle, curAuthors, curSnippet);
+    const curArchive = editBtn.getAttribute("data-archive") || "";
+    await editPaper(id, curTitle, curAuthors, curSnippet, curArchive);
     return;
   }
 
@@ -1078,6 +1105,7 @@ function hideStudyForm() {
   elStudyForm.hidden = true;
   studyLink = "";
   if (elStudyUrl) elStudyUrl.value = "";
+  if (elStudyArchive) elStudyArchive.value = "";
 }
 
 function openStudyForm(url, data = {}) {
@@ -1085,6 +1113,7 @@ function openStudyForm(url, data = {}) {
   elStudyTitle.value = data.title || "";
   elStudyAuthor.value = data.authors || "";
   elStudySnip.value = data.snippet || "";
+  if (elStudyArchive) elStudyArchive.value = data.archive_link || "";
   populateStudyTags();
   elStudyForm.hidden = false;
   elStudyTitle.focus();
@@ -1125,6 +1154,7 @@ async function submitStudy(e) {
   const title = elStudyTitle.value.trim();
   const authors = elStudyAuthor.value.trim();
   const snippet = elStudySnip.value.trim();
+  const archive_link = (elStudyArchive?.value || "").trim();
   const tag = elStudyTag.value.trim();
   const link = studyLink || (elStudyUrl?.value || "").trim();
   if (!title || !link || !tag) {
@@ -1138,6 +1168,7 @@ async function submitStudy(e) {
     authors,
     snippet,
     link,
+    archive_link,
     tag,
   });
   elStudySubmit.disabled = false;
@@ -1162,6 +1193,24 @@ elStudyUrl?.addEventListener("keydown", (e) => {
 });
 elStudyForm?.addEventListener("submit", submitStudy);
 elStudyCancel?.addEventListener("click", hideStudyForm);
+
+// Pasted author lists often carry affiliation superscripts (e.g. "Jane Doe 1,2,✉") —
+// strip the digits and collapse whatever repeated commas that leaves behind.
+function cleanPastedAuthors(text) {
+  return text.replace(/[0-9]/g, "").replace(/,{2,}/g, ",").replace(/\s+,/g, ",");
+}
+elStudyAuthor?.addEventListener("paste", (e) => {
+  const text = e.clipboardData?.getData("text");
+  if (!text) return;
+  e.preventDefault();
+  const cleaned = cleanPastedAuthors(text);
+  const el = elStudyAuthor;
+  const start = el.selectionStart ?? el.value.length;
+  const end = el.selectionEnd ?? el.value.length;
+  el.value = el.value.slice(0, start) + cleaned + el.value.slice(end);
+  const cursor = start + cleaned.length;
+  el.setSelectionRange(cursor, cursor);
+});
 
 const railObserver = new IntersectionObserver((entries) => {
   for (const en of entries) {

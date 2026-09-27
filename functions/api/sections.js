@@ -34,8 +34,15 @@ const TERM_ALIASES = {
   "cellular memory": "Psychological Projection",
   "tarot": "Psychological Projection",
   "death": "Psychological Projection",
+  "language": "Society",
+  "legal": "Society",
   "bitcoin": "Society",
+  "it": "Society",
+  "urbanisation": "Society",
+  "urbanization": "Society",
   "gaming": "Society",
+  "memory": "Psych Miscellaneous",
+  "consciousness": "Psych Miscellaneous",
   "experimental philosophy": "Experimental Philosophy",
   "philosophy of mind": "Experimental Philosophy",
   "metaphysics": "Experimental Philosophy",
@@ -142,11 +149,9 @@ const CANONICAL_TAGS = [
   "Fluoride",
   "β-Casomorphin-7",
   "Cobalamin",
-  "Memory",
   "Gemstones",
   "Dreams",
   "Environment",
-  "Legal",
   "Society",
   "Psych Miscellaneous",
 ];
@@ -236,7 +241,7 @@ export async function onRequestGet({ request, env }) {
       const { results } = await env.research
         .prepare(
           `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
-                  p.screenshot, p.read_at, p.starred_at,
+                  p.screenshot, p.read_at, p.starred_at, p.archive_link,
                   (SELECT group_concat(tag, '|') FROM tags WHERE paper_id = p.id) AS tags
            FROM papers p
            WHERE p.status = 'inbox'
@@ -262,7 +267,7 @@ export async function onRequestGet({ request, env }) {
     const starredRows = (await env.research
       .prepare(
         `SELECT p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
-                p.screenshot, p.read_at, p.starred_at,
+                p.screenshot, p.read_at, p.starred_at, p.archive_link,
                 (SELECT group_concat(tag, '|') FROM tags WHERE paper_id = p.id) AS tags
          FROM papers p
          WHERE p.status != 'trash' AND p.starred_at IS NOT NULL

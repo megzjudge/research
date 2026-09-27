@@ -17,7 +17,7 @@ const STATUSES = ["inbox", "starred", "trash"];
 
 const PAPER_FIELDS = `
   p.id, p.title, p.authors, p.snippet, p.link, p.first_seen, p.status,
-  p.screenshot, p.read_at, p.starred_at`;
+  p.screenshot, p.read_at, p.starred_at, p.archive_link`;
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
@@ -107,11 +107,15 @@ export async function onRequestPost({ request, env }) {
       const authors = (body.authors || "").trim();
       const snippet = (body.snippet || "").trim();
       const link = (body.link || "").trim();
+      const archiveLink = (body.archive_link || "").trim();
       const tag = (body.tag || "").trim();
       if (!title) return json({ error: "title required" }, 400);
       if (!link) return json({ error: "link required" }, 400);
       if (!/^https?:\/\//i.test(link)) {
         return json({ error: "link must start with http:// or https://" }, 400);
+      }
+      if (archiveLink && !/^https?:\/\//i.test(archiveLink)) {
+        return json({ error: "archive link must start with http:// or https://" }, 400);
       }
       if (!tag) return json({ error: "tag required" }, 400);
 
@@ -119,11 +123,11 @@ export async function onRequestPost({ request, env }) {
       try {
         await env.research
           .prepare(
-            `INSERT INTO papers (title, authors, snippet, link, alert_subject, status, first_seen)
-             VALUES (?, ?, ?, ?, ?, 'inbox', ?)
+            `INSERT INTO papers (title, authors, snippet, link, alert_subject, status, first_seen, archive_link)
+             VALUES (?, ?, ?, ?, ?, 'inbox', ?, ?)
              ON CONFLICT(link) DO NOTHING`
           )
-          .bind(title, authors, snippet, link, "manual add", sydneyNow())
+          .bind(title, authors, snippet, link, "manual add", sydneyNow(), archiveLink || null)
           .run();
         row = await env.research
           .prepare(`SELECT id FROM papers WHERE link = ?`)
@@ -196,12 +200,16 @@ export async function onRequestPost({ request, env }) {
       const title = (body.title || "").trim();
       const authors = (body.authors || "").trim();
       const snippet = (body.snippet || "").trim();
+      const archiveLink = (body.archive_link || "").trim();
       if (!title) return json({ error: "title required" }, 400);
+      if (archiveLink && !/^https?:\/\//i.test(archiveLink)) {
+        return json({ error: "archive link must start with http:// or https://" }, 400);
+      }
       await env.research
-        .prepare(`UPDATE papers SET title = ?, authors = ?, snippet = ? WHERE id = ?`)
-        .bind(title, authors, snippet, id)
+        .prepare(`UPDATE papers SET title = ?, authors = ?, snippet = ?, archive_link = ? WHERE id = ?`)
+        .bind(title, authors, snippet, archiveLink || null, id)
         .run();
-      return json({ ok: true, id, title, authors, snippet });
+      return json({ ok: true, id, title, authors, snippet, archive_link: archiveLink });
     }
 
     if (action === "star") {

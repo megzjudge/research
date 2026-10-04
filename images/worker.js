@@ -1,0 +1,1046 @@
+/**
+ * scholar-alerts Email Worker  —  v7
+ *
+ * Receives Google Scholar alert emails via Cloudflare Email Routing,
+ * parses out each paper, tags it by the search term that triggered the
+ * alert, de-dupes on the paper link, and writes into a D1 database.
+ *
+ * Accepts mail from scholaralerts-noreply@google.com, or from addresses
+ * listed in the FORWARDED_EMAILS secret (comma-separated) — so you can
+ * forward old alerts in from your own inbox.
+ *
+ * Forwarding support: handles inline forwards and forward-as-attachment
+ * from Gmail, Proton Mail, Outlook (incl. SafeLinks-rewritten URLs),
+ * Apple Mail, etc. Decodes quoted-printable and base64 MIME parts in
+ * their declared charset, scans every text/html part in the message,
+ * and falls back to scholar_url-anchor parsing when a client rewrites
+ * Scholar's markup. Plain-text-only forwards are NOT supported — the
+ * paper links don't survive them. Forward as inline HTML.
+ *
+ * Bindings:
+ *   - D1:     research          (env.research)
+ *   - Secret: FORWARDED_EMAILS  (env.FORWARDED_EMAILS)
+ */
+
+const VERSION = "worker v27 — D1 errors logged, mail not dropped (2026-06-29)";
+
+const KNOWN_TERMS = [
+  // Big Ten aspect alerts — before overlapping short terms
+  "industriousness AND orderliness",
+  "intellect AND aesthetics",
+  "intellect AND openness",
+  "withdrawal AND volatility",
+  "disagreeableness AND agreeableness",
+  "enthusiasm AND assertiveness",
+  "compassion AND politeness",
+  // Indian Psychology — full boolean phrases first
+  '"sattva" AND "rajas" AND "tamas"',
+  "sattva AND rajas AND tamas",
+  '"indian" AND "psychology" AND "personality"',
+  "indian AND psychology AND personality",
+  '"triguna" AND "personality"',
+  "triguna AND personality",
+  '"vedic" AND "psychology"',
+  "vedic AND psychology",
+  '"pancha" AND "kosha"',
+  "pancha AND kosha",
+  "Pancha Kosha",
+  '"guna" AND "personality"',
+  "guna AND personality",
+  '"atman" AND "psychology"',
+  "atman AND psychology",
+  // Everything else
+  "Dark Tetrad", "Dark Triad", "Machiavellianism",
+  "Industriousness",
+  "Big Five", "Big 5", "MBTI", "Myers-Briggs", "Myers Briggs",
+  "HEXACO", "Sociosexuality", "high sex drive", "Honesty-Humility", "Psychological Projection", "Cellular Memory", "Tarot", "Death", "Gemstones", "Language", "Legal", "Society", "Bitcoin", "IT", "Urbanisation", "Gaming", "Psych Miscellaneous", "Consciousness",
+  "Bisexual women", "Bisexuality", "Bisexual",
+  "Experimental Philosophy", "Philosophy of Mind", "Metaphysics", "Epistemology", "Philosophy of Language", "Philosophy of Religion",
+  "Rupert Sheldrake", "Emil Kirkegaard", "Paul Eastwick", "Noah Carl", "Diana Fleischman", "Bo Winegard", "Edward Dutton", "Nathan Cofnas", "Sebastian Jensen", "Philip Zimbardo", "David Buss", "Jonathan Haidt", "Michael Shellenberger", "Rob Henderson", "Peter Boghossian", "John McWhorter", "Amishi Jha", "Richard J. Haier", "David Puts", "Robert Plomin", "Camille Paglia", "David Ley", "James Cantor", "Nicole Prause", "J. Michael Bailey", "Glenn Loury", "Dan Ariely", "Robert Malone", "Rainer Kaiser", "Delroy Paulhus", "Peter A McCullough", "DM Buss", "DM Bus", "Richard Hanania", "Lex Fridman", "Jordan B Peterson",
+  "Intelligence Quotient", "Intelligent Quotient", "IQ", "General Intelligence", "Fluid Intelligence", "Crystallized intelligence", "Crystallised intelligence", "Carroll's three-stratum hierarchy",
+  "adhd AND nicotine", "ADHD and Nicotine", "ADHD",
+  "Assortative Mating", "Intersexual Selection", "Mate Choice",
+  "Telomeres", "Stress", "Ageing", "Aging",
+  "Genetics", "Attraction", "Intrasexual Competition",
+  "Health (overall)", "Nutrition", "Cooking Oil", "Essential Oil", "Fluoride", "β-Casomorphin-7", "ß-Casomorphin-7", "BCM-7", "Cobalamin", "Vitamin B12", "Memory",
+  "Sunlight OR Red Light OR Vitamin D OR Blue Light", "Sunlight", "Red Light", "Vitamin D", "Blue Light",
+  "Meditation",
+  '"Śūnyatā" OR "Śūnya"', "Śūnyatā OR Śūnya", "Śūnyatā", "Śūnya",
+  "dreams", "dreams AND consciousness", "Dimethyltryptamine", "dreams AND memory consolidation", "memory consolidation", "sleep AND neuroplasticity", "sleep AND reverse-learning", "psilocybin",
+  "Environment", "Food"
+];
+
+// Map variant spellings to one canonical tag so they share a section.
+const TERM_ALIASES = {
+  "big 5": "Big Five",
+  "big five": "Big Five",
+  "myers-briggs": "MBTI",
+  "myers briggs": "MBTI",
+  "dark tetrad": "Dark Triad",
+  "machiavellianism": "Dark Triad",
+  "bisexual": "Bisexuality",
+  "bisexual women": "Bisexuality",
+  "sattva and rajas and tamas": "Indian Psychology",
+  "indian and psychology and personality": "Indian Psychology",
+  "triguna and personality": "Indian Psychology",
+  "vedic and psychology": "Indian Psychology",
+  "pancha and kosha": "Indian Psychology",
+  "pancha kosha": "Indian Psychology",
+  "guna and personality": "Indian Psychology",
+  "atman and psychology": "Indian Psychology",
+  "triguna": "Indian Psychology",
+  "pancha": "Indian Psychology",
+  "guna": "Indian Psychology",
+  "vedic": "Indian Psychology",
+  "sattva": "Indian Psychology",
+  "atman": "Indian Psychology",
+  "indian": "Indian Psychology",
+  "cellular memory": "Cellular Memory",
+  "tarot": "Psychological Projection",
+  "death": "Psychological Projection",
+  "language": "Society",
+  "legal": "Society",
+  "bitcoin": "Society",
+  "it": "Society",
+  "urbanisation": "Society",
+  "urbanization": "Society",
+  "gaming": "Society",
+  "memory": "Cellular Memory",
+  "consciousness": "Consciousness",
+  "experimental philosophy": "Experimental Philosophy",
+  "philosophy of mind": "Experimental Philosophy",
+  "metaphysics": "Experimental Philosophy",
+  "epistemology": "Experimental Philosophy",
+  "philosophy of language": "Experimental Philosophy",
+  "philosophy of religion": "Experimental Philosophy",
+  "rupert sheldrake": "Followed Authors",
+  "emil kirkegaard": "Followed Authors",
+  "paul eastwick": "Followed Authors",
+  "noah carl": "Followed Authors",
+  "diana fleischman": "Followed Authors",
+  "bo winegard": "Followed Authors",
+  "edward dutton": "Followed Authors",
+  "nathan cofnas": "Followed Authors",
+  "sebastian jensen": "Followed Authors",
+  "philip zimbardo": "Followed Authors",
+  "david buss": "Followed Authors",
+  "jonathan haidt": "Followed Authors",
+  "michael shellenberger": "Followed Authors",
+  "rob henderson": "Followed Authors",
+  "peter boghossian": "Followed Authors",
+  "john mcWhorter": "Followed Authors",
+  "amishi jha": "Followed Authors",
+  "richard j. haier": "Followed Authors",
+  "david puts": "Followed Authors",
+  "robert plomin": "Followed Authors",
+  "camille paglia": "Followed Authors",
+  "david ley": "Followed Authors",
+  "james cantor": "Followed Authors",
+  "nicole prause": "Followed Authors",
+  "j. michael bailey": "Followed Authors",
+  "glenn loury": "Followed Authors",
+  "dan ariely": "Followed Authors",
+  "robert malone": "Followed Authors",
+  "rainer kaiser": "Followed Authors",
+  "delroy paulhus": "Followed Authors",
+  "peter a mccullough": "Followed Authors",
+  "dm buss": "Followed Authors",
+  "dm bus": "Followed Authors",
+  "richard hanania": "Followed Authors",
+  "lex fridman": "Followed Authors",
+  "jordan b peterson": "Followed Authors",
+  "adhd and nicotine": "ADHD",
+  "adhd": "ADHD",
+  "high sex drive": "Sociosexuality",
+  "iq": "Intelligence Quotient",
+  "intelligent quotient": "Intelligence Quotient",
+  "intelligence quotient": "Intelligence Quotient",
+  "assortative mating": "Mate Choice",
+  "intersexual selection": "Mate Choice",
+  "mate choice": "Mate Choice",
+  "telomeres": "Telomeres",
+  "stress": "Telomeres",
+  "ageing": "Telomeres",
+  "aging": "Telomeres",
+  "genetics": "Genetics",
+  "attraction": "Mate Choice",
+  "intrasexual competition": "Intrasexual Competition",
+  "sunlight or red light or vitamin d or blue light": "Sunlight",
+  "sunlight": "Sunlight",
+  "red light": "Sunlight",
+  "vitamin d": "Sunlight",
+  "blue light": "Sunlight",
+  "cooking oil": "Cooking Oil",
+  "essential oil": "Essential Oil",
+  "health": "Health (overall)",
+  "health (overall)": "Health (overall)",
+  "nutrition": "Health (overall)",
+  "meditation": "Meditation",
+  "silicon-based life": "Silicon-Based Life",
+  "silicon based life": "Silicon-Based Life",
+  '"śūnyatā" or "śūnya"': "Śūnyatā",
+  "śūnyatā or śūnya": "Śūnyatā",
+  "śūnyatā": "Śūnyatā",
+  "śūnya": "Śūnyatā",
+  "sunyata": "Śūnyatā",
+  "sunya": "Śūnyatā",
+  "industriousness and orderliness": "Big Ten",
+  "intellect and aesthetics": "Big Ten",
+  "intellect and openness": "Big Ten",
+  "withdrawal and volatility": "Big Ten",
+  "disagreeableness and agreeableness": "Big Ten",
+  "enthusiasm and assertiveness": "Big Ten",
+  "compassion and politeness": "Big Ten",
+  "industriousness": "Big Ten",
+  "testosterone": "Testosterone",
+  "microplastic": "Microplastics",
+  "microplastics": "Microplastics",
+  "ß-casomorphin-7": "β-Casomorphin-7",
+  "bcm-7": "β-Casomorphin-7",
+  "bcm7": "β-Casomorphin-7",
+  "vitamin b12": "Cobalamin",
+  "vitamin-b12": "Cobalamin",
+  "cobalamin": "Cobalamin",
+  "dreams and consciousness": "Dreams",
+  "dimethyltryptamine": "Dreams",
+  "dreams and memory consolidation": "Dreams",
+  "memory consolidation": "Dreams",
+  "sleep and neuroplasticity": "Dreams",
+  "sleep and reverse-learning": "Dreams",
+  "psilocybin": "Dreams",
+  "general intelligence": "Intelligence Quotient",
+  "fluid intelligence": "Intelligence Quotient",
+  "crystallized intelligence": "Intelligence Quotient",
+  "crystallised intelligence": "Intelligence Quotient",
+  "carroll's three-stratum hierarchy": "Intelligence Quotient",
+  "honesty-humility": "HEXACO",
+  "food": "Environment",
+  "virology": "Coronavirus",
+  "disgust": "Psych Miscellaneous",
+  "genitals": "Sociosexuality",
+  "autism": "ADHD",
+};
+
+// Sidebar section tags — canonical() normalizes case variants to these.
+const CANONICAL_TAGS = [
+  "Big Five",
+  "Big Ten",
+  "MBTI",
+  "HEXACO",
+  "Dark Triad",
+  "Indian Psychology",
+  "Experimental Philosophy",
+  "Followed Authors",
+  "Intelligence Quotient",
+  "ADHD",
+  "Bisexuality",
+  "Sociosexuality",
+  "Psychological Projection",
+  "Cellular Memory",
+  "Mate Choice",
+  "Telomeres",
+  "Genetics",
+  "Intrasexual Competition",
+  "Health (overall)",
+  "Cooking Oil",
+  "Essential Oil",
+  "Sunlight",
+  "Meditation",
+  "Consciousness",
+  "Silicon-Based Life",
+  "Śūnyatā",
+  "Testosterone",
+  "Microplastics",
+  "Coronavirus",
+  "Fluoride",
+  "β-Casomorphin-7",
+  "Cobalamin",
+  "Gemstones",
+  "Dreams",
+  "Environment",
+  "Society",
+  "Psych Miscellaneous",
+];
+
+// For cosmetic use only - can delete this const freely
+const scholars = [
+  { name: "Rupert Sheldrake",     url: "https://scholar.google.com/citations?user=Ey1i5CYAAAAJ" },
+  { name: "Emil Kirkegaard",      url: "https://scholar.google.com/citations?user=VKUbfSIAAAAJ" },
+  { name: "Paul Eastwick",        url: "https://scholar.google.com/citations?user=ePCQ9z0AAAAJ" },
+  { name: "Noah Carl",            url: "https://scholar.google.com/citations?user=CUywRJoAAAAJ" },
+  { name: "Diana Fleischman",     url: "https://scholar.google.com/citations?user=Ytlll-UAAAAJ" },
+  { name: "Bo Winegard",          url: "https://scholar.google.com/citations?user=Kr0O2nwAAAAJ" },
+  { name: "Edward Dutton",        url: "https://scholar.google.com/citations?user=k0A8n6sAAAAJ" },
+  { name: "Nathan Cofnas",        url: "https://scholar.google.com/citations?user=sOmCSskAAAAJ" },
+  { name: "Sebastian Jensen",     url: "https://scholar.google.com/citations?user=mEqpmMAAAAAJ" },
+  { name: "Philip Zimbardo",      url: "https://scholar.google.com/citations?user=eh55yOMAAAAJ" },
+  { name: "David Buss",           url: "https://scholar.google.com/citations?user=wrmnCfsAAAAJ" },
+  { name: "Jonathan Haidt",       url: "https://scholar.google.com/citations?user=VafYYacAAAAJ" },
+  { name: "Michael Shellenberger",url: "https://scholar.google.com/citations?user=rBSjQOcAAAAJ" },
+  { name: "Rob Henderson",        url: "https://scholar.google.com/citations?user=MBPgB1AAAAAJ" },
+  { name: "Peter Boghossian",     url: "https://scholar.google.com/citations?user=BshPNroAAAAJ" },
+  { name: "John McWhorter",       url: "https://scholar.google.com/citations?user=9M4q0vwAAAAJ" },
+  { name: "Amishi Jha",           url: "https://scholar.google.com/citations?user=wcsVtXEAAAAJ" },
+  { name: "Richard J. Haier",     url: "https://scholar.google.com/citations?user=kVjCAWYAAAAJ" },
+  { name: "David Puts",           url: "https://scholar.google.com/citations?user=fZ_ZqrMAAAAJ" },
+  { name: "Robert Plomin",        url: "https://scholar.google.com/citations?user=Nmt_xfwAAAAJ" },
+  { name: "Camille Paglia",       url: "https://scholar.google.com/citations?user=j8mlya0AAAAJ" },
+  { name: "David Ley",            url: "https://scholar.google.com/citations?user=fqT-efMAAAAJ" },
+  { name: "James Cantor",         url: "https://scholar.google.com/citations?user=kikPiAEAAAAJ" },
+  { name: "Nicole Prause",        url: "https://scholar.google.com/citations?user=yySl87AAAAAJ" },
+  { name: "J. Michael Bailey",    url: "https://scholar.google.com/citations?user=o_vo1p0AAAAJ" },
+  { name: "Glenn Loury",          url: "https://scholar.google.com/citations?user=Dc50YDIAAAAJ" },
+  { name: "Dan Ariely",           url: "https://scholar.google.com/citations?user=Z1G9Lk4AAAAJ" },
+  { name: "Robert Malone",        url: "https://scholar.google.com/citations?user=Jf1bApYAAAAJ" },
+  { name: "Rainer Kaiser",        url: "https://scholar.google.com/citations?user=y9_JwHIAAAAJ" },
+  { name: "Delroy Paulhus",       url: "https://scholar.google.com/citations?user=uMcVfSYAAAAJ" },
+  { name: "Peter A. McCullough",  url: "https://scholar.google.com/citations?user=LzqEaOkAAAAJ" },
+  { name: "Richard Hanania",      url: "https://scholar.google.com/citations?user=xJ-71I0AAAAJ" },
+  { name: "Lex Fridman",          url: "https://scholar.google.com/citations?user=wZH_N7cAAAAJ" },
+  { name: "Jordan B Peterson",    url: "https://scholar.google.com/citations?user=wL1F22UAAAAJ" },
+  // --- Missing URLs: look up later ---
+  { name: "Maryanne Demasi",      url: null, needsLookup: true },
+  { name: "John Campbell",        url: null, needsLookup: true },
+  { name: "Ben Davidson",         url: null, needsLookup: true },
+  { name: "Robert Epstein",       url: null, needsLookup: true },
+  { name: "Jeffrey Herf",         url: null, needsLookup: true },
+  { name: "Bob Altemeyer",        url: null, needsLookup: true },
+  { name: "Miriam Grossman",      url: null, needsLookup: true },
+  { name: "Aella",                url: null, needsLookup: true },
+  { name: "Marian Tupy",          url: null, needsLookup: true },
+  { name: "Vincent Harinam",      url: null, needsLookup: true },
+  { name: "Warren Farrell",       url: null, needsLookup: true },
+  { name: "Terence McKenna",      url: null, needsLookup: true },
+  { name: "Thomas Sowell",        url: null, needsLookup: true },
+  { name: "Kevin Dutton",         url: null, needsLookup: true },
+  { name: "Arthur Jensen",        url: null, needsLookup: true },
+  { name: "Christopher F. Rufo",  url: null, needsLookup: true },
+  { name: "Inquisitive Bird",     url: null, needsLookup: true },
+  { name: "Matt Taibbi",          url: null, needsLookup: true },
+  { name: "Gurwinder",            url: null, needsLookup: true },
+  { name: "Helen Pluckrose",      url: null, needsLookup: true },
+  { name: "Helen Dale",           url: null, needsLookup: true },
+  { name: "Curtis Yarvin",        url: null, needsLookup: true },
+];
+
+// Title-case ALL CAPS Scholar titles on intake (matches d1_title_case.sql logic).
+const TITLE_ACRONYMS = new Set([
+  "mbti", "adhd", "iq", "hexaco", "llm", "llms", "ai", "ml", "usa", "uk", "eu",
+  "pdf", "doi", "gpt", "nlp", "hci", "ux", "vr", "ar", "iot", "sme", "ceo",
+  "phd", "covid", "hiv", "dsm", "neo", "pi", "r", "sh", "jcdr", "smpn",
+]);
+const TITLE_SMALL = new Set([
+  "a", "an", "and", "as", "at", "but", "by", "for", "in", "nor", "of", "on",
+  "or", "the", "to", "vs", "via", "with", "from",
+]);
+
+function capTitleCore(core, idx, total) {
+  if (!core) return core;
+  for (const sep of ["\u2013", "\u2014", "-"]) {
+    if (core.includes(sep)) {
+      const parts = core.split(sep);
+      return parts.map((p, i) => capTitleCore(p, i, parts.length)).join(sep);
+    }
+  }
+  const low = core.toLowerCase();
+  if (TITLE_ACRONYMS.has(low)) return core.toUpperCase();
+  if (idx > 0 && idx < total - 1 && TITLE_SMALL.has(low)) return low;
+  if (core.length === 1) return core.toUpperCase();
+  return core[0].toUpperCase() + core.slice(1).toLowerCase();
+}
+
+function titleCaseFromAllCaps(title) {
+  const s = (title || "").trim().toLowerCase();
+  if (!s) return title;
+  const parts = s.split(/(\s+)/);
+  const words = parts.filter((p) => p && !/^\s+$/.test(p));
+  let wi = 0;
+  const out = [];
+  for (const p of parts) {
+    if (/^\s+$/.test(p)) { out.push(p); continue; }
+    const m = p.match(/^([\"'(\[]*)(.*?)([\"')\].,:;!?™]*)$/);
+    if (!m) { out.push(capTitleCore(p, wi, words.length)); wi++; continue; }
+    const [, pre, core, suf] = m;
+    if (core) { out.push(pre + capTitleCore(core, wi, words.length) + suf); wi++; }
+    else out.push(p);
+  }
+  return out.join("");
+}
+
+function normalizeIntakeTitle(title) {
+  const t = (title || "").trim();
+  if (!t) return t;
+  const letters = t.replace(/[^A-Za-z]/g, "");
+  if (!letters || letters !== letters.toUpperCase()) return t;
+  return titleCaseFromAllCaps(t);
+}
+
+function canonical(term) {
+  const key = (term || "").toLowerCase().trim();
+  if (!key) return "untagged";
+  if (TERM_ALIASES[key]) return TERM_ALIASES[key];
+  for (const t of CANONICAL_TAGS) {
+    if (t.toLowerCase() === key) return t;
+  }
+  return term.trim();
+}
+
+// Extract the bare email from a From header like
+//   Google Scholar Alerts <scholaralerts-noreply@google.com>
+// falling back to the whole trimmed string if there are no angle brackets.
+function parseAddress(headerValue) {
+  const m = headerValue.match(/<([^>]+)>/);
+  return (m ? m[1] : headerValue).trim();
+}
+
+// Decode RFC 2047 encoded-word headers (e.g. Subject: =?UTF-8?B?...?=),
+// which mail clients use to carry non-ASCII text in headers. Without this,
+// alerts like "Śūnyatā" OR "śūnya" arrive as raw base64 and never match any
+// known term — they get tagged verbatim as gibberish.
+function decodeMimeWords(str) {
+  if (!str) return str;
+  // RFC 2047: whitespace strictly between two encoded-words is folding
+  // artifact, not a real space — drop it before decoding.
+  const joined = str.replace(/(\?=)\s+(=\?[^?]+\?[BbQq]\?)/g, "$1$2");
+  return joined.replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, (_, charset, enc, text) => {
+    try {
+      if (enc.toUpperCase() === "B") {
+        const bin = atob(text);
+        const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+        return decodeCharset(bytes, charset);
+      }
+      // Q encoding: quoted-printable with "_" standing in for space.
+      const withSpaces = text.replace(/_/g, " ");
+      const bytes = [];
+      for (let i = 0; i < withSpaces.length; i++) {
+        if (withSpaces[i] === "=" && /^[0-9A-Fa-f]{2}/.test(withSpaces.slice(i + 1, i + 3))) {
+          bytes.push(parseInt(withSpaces.slice(i + 1, i + 3), 16));
+          i += 2;
+        } else {
+          bytes.push(withSpaces.charCodeAt(i) & 0xff);
+        }
+      }
+      return decodeCharset(new Uint8Array(bytes), charset);
+    } catch {
+      return _; // leave the encoded-word as-is if decoding fails
+    }
+  });
+}
+
+export default {
+  // Lets you check what's deployed by visiting the worker's URL in a browser.
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    // One-shot maintenance: normalize every stored link to the canonical
+    // form v12 produces, merging any rows that collide. Guarded by a token
+    // so it can't fire by accident. Visit:
+    //   https://<worker>/backfill-links?token=YOUR_SECRET
+    // Set BACKFILL_TOKEN as a secret first; remove this block when done.
+    if (url.pathname === "/backfill-links") {
+      if (!env.BACKFILL_TOKEN || url.searchParams.get("token") !== env.BACKFILL_TOKEN) {
+        return new Response("forbidden", { status: 403 });
+      }
+      try {
+        const report = await backfillLinks(env.research);
+        return new Response(JSON.stringify(report, null, 2), {
+          headers: { "content-type": "application/json; charset=utf-8" },
+        });
+      } catch (e) {
+        return new Response("backfill error: " + String(e), { status: 500 });
+      }
+    }
+
+    return new Response(VERSION, {
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  },
+
+  async email(message, env, ctx) {
+    console.log(VERSION);
+
+    // ── sender gate ────────────────────────────────────────────────
+    // message.from is the SMTP envelope sender, which for Google mail is
+    // often a per-message bounce address (…@*.bounces.google.com), NOT the
+    // visible "From:" header. So we check BOTH, and accept Scholar's bounce
+    // domain, otherwise genuine alerts get rejected.
+    const envelopeFrom = (message.from || "").toLowerCase();
+    const headerFrom = parseAddress(message.headers.get("from") || "").toLowerCase();
+
+    const allowed = (env.FORWARDED_EMAILS || "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+
+    const SCHOLAR = "scholaralerts-noreply@google.com";
+    const isScholar =
+      envelopeFrom === SCHOLAR ||
+      headerFrom === SCHOLAR ||
+      envelopeFrom.endsWith(".bounces.google.com"); // Scholar's envelope bounce sender
+    const isForwarder = allowed.includes(envelopeFrom) || allowed.includes(headerFrom);
+
+    console.log(
+      `gate check → envelope="${envelopeFrom}" header="${headerFrom}" | secretSet=${env.FORWARDED_EMAILS !== undefined} | allowed=[${allowed.join(" | ")}]`
+    );
+
+    if (!isScholar && !isForwarder) {
+      console.log(`Rejected mail (envelope="${envelopeFrom}" header="${headerFrom}")`);
+      message.setReject("Sender not allowed");
+      return;
+    }
+
+    // ── parse + store ──────────────────────────────────────────────
+    // Uncaught errors here mark the message "Dropped" in Email Routing.
+    // Catch everything after the sender gate so a D1/schema hiccup doesn't
+    // reject genuine Scholar mail.
+    try {
+      if (!env.research) {
+        console.log("Missing D1 binding env.research — check worker bindings.");
+        return;
+      }
+
+      const raw = await streamToString(message.raw);
+      const subject = decodeMimeWords(message.headers.get("subject") || "");
+
+      // A forward can contain several text/html parts (the forwarder's
+      // wrapper, the original message, an attached .eml). Scan them all.
+      const htmlParts = extractHtmlBodies(raw);
+      if (htmlParts.length === 0) {
+        console.log("No HTML body found; skipping. (Plain-text forwards aren't supported — forward as inline HTML.)");
+        return;
+      }
+
+      let papers = [];
+      for (const html of htmlParts) {
+        papers = papers.concat(parseScholarHtml(html));
+      }
+      papers = dedupeByLink(papers);
+
+      if (papers.length === 0) {
+        const first = htmlParts[0] || "";
+        console.log(
+          `No papers parsed from alert: ${subject} | ${htmlParts.length} html part(s), first ${first.length} chars, starts: ${first.slice(0, 100).replace(/\s+/g, " ")}`
+        );
+        return;
+      }
+
+      const tag = deriveTag(subject);
+      let stored = 0;
+      let failed = 0;
+
+      for (const p of papers) {
+        try {
+          await upsertPaper(env.research, p, tag, subject);
+          stored++;
+        } catch (e) {
+          failed++;
+          console.log(
+            `upsert failed (${failed}) title="${(p.title || "").slice(0, 80)}" link="${p.link || ""}": ${String(e)}`
+          );
+        }
+      }
+
+      console.log(
+        `Ingest done: ${stored}/${papers.length} stored, ${failed} failed, tag="${tag}" (subject: ${subject}).`
+      );
+    } catch (e) {
+      console.log(`email handler error: ${String(e)}`);
+    }
+  },
+};
+
+/* ------------------------- parsing ------------------------- */
+
+function parseScholarHtml(html) {
+  let results = parseByH3(html);
+  let via = "h3";
+  if (results.length === 0) {
+    results = parseByAnchors(html);
+    via = "scholar_url anchors";
+  }
+  results = dedupeByLink(results);
+  if (results.length) console.log(`Parsed ${results.length} paper(s) via ${via}.`);
+  return results;
+}
+
+// Strategy 1: each Scholar result is an <h3> with the title link, followed
+// by a green author/venue line and a snippet div. We walk h3 blocks.
+function parseByH3(html) {
+  const results = [];
+  const blocks = html.split(/<h3\b/i).slice(1);
+
+  for (const block of blocks) {
+    const chunk = "<h3" + block;
+
+    // Real title links always carry the scholar_url wrapper (it survives
+    // URL-encoding inside Outlook SafeLinks too); footer/share links don't.
+    const titleAnchor = chunk.match(/<a[^>]*href="([^"]*scholar_url[^"]*)"[^>]*>([\s\S]*?)<\/a>/i);
+    if (!titleAnchor) continue;
+
+    const link = unwrapLink(decodeEntities(titleAnchor[1]));
+    const title = stripTags(titleAnchor[2]).trim();
+    if (!title) continue;
+
+    // Author/venue line: first green-coloured div after the title.
+    const meta = chunk.match(/<div[^>]*color:\s*#?00?6621[^>]*>([\s\S]*?)<\/div>/i)
+      || chunk.match(/<div[^>]*green[^>]*>([\s\S]*?)<\/div>/i);
+    const authors = meta ? stripTags(meta[1]).trim() : "";
+
+    // Snippet: Scholar marks it with class gse_alrt_sni; fall back to the
+    // first substantial div if the class was stripped in transit.
+    const snippetMatch = chunk.match(/<div[^>]*gse_alrt_sni[^>]*>([\s\S]*?)<\/div>/i)
+      || chunk.match(/<div[^>]*>([\s\S]{40,}?)<\/div>/i);
+    const snippet = snippetMatch ? stripTags(snippetMatch[1]).trim() : "";
+
+    results.push({ title, link, authors, snippet });
+  }
+
+  return results;
+}
+
+// Strategy 2 (rewritten-markup fallback): clients like Outlook restructure
+// Scholar's HTML, but title links keep their scholar_url wrapper. Every
+// anchor whose href contains scholar_url and whose text looks like a title
+// is a paper; authors + snippet come from the text before the next one.
+function parseByAnchors(html) {
+  const results = [];
+  const re = /<a[^>]*href="([^"]*scholar_url[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+
+  const anchors = [];
+  let m;
+  while ((m = re.exec(html))) {
+    anchors.push({ start: m.index, end: re.lastIndex, href: m[1], inner: m[2] });
+  }
+
+  for (let i = 0; i < anchors.length; i++) {
+    const a = anchors[i];
+    const title = stripTags(a.inner).trim();
+    if (!title || title.length < 8) continue; // skip icon/button anchors
+
+    const link = unwrapLink(decodeEntities(a.href));
+
+    // Text between this title and the next paper's title.
+    const tailEnd = i + 1 < anchors.length ? anchors[i + 1].start : Math.min(a.end + 2000, html.length);
+    const text = stripTags(html.slice(a.end, tailEnd)).trim();
+
+    // Scholar formats the byline as "AUTHORS - YEAR" (or "AUTHORS - VENUE, YEAR").
+    let authors = "";
+    let snippet = text;
+    const by = text.match(/^(.{0,160}?\b(?:19|20)\d{2}\b)\s*/);
+    if (by) {
+      authors = by[1].trim();
+      snippet = text.slice(by[0].length).trim();
+    }
+    // Trim trailing Scholar boilerplate from the last result's snippet.
+    snippet = snippet
+      .replace(/\b(Save|Twitter|LinkedIn|Facebook)\b.*$/s, "")
+      .replace(/This message was sent by Google Scholar.*$/is, "")
+      .replace(/Cancel alert.*$/is, "")
+      .trim();
+
+    results.push({ title, link, authors, snippet });
+  }
+
+  return results;
+}
+
+// Iteratively unwrap redirector links:
+//   Outlook SafeLinks:  https://…safelinks.protection.outlook.com/?url=ENCODED
+//   Google Scholar:     https://scholar.google.com/scholar_url?url=REAL&…
+// Any wrapper exposing a ?url= param containing an absolute URL is peeled,
+// up to 4 layers deep.
+function unwrapLink(href) {
+  let link = href;
+  for (let i = 0; i < 4; i++) {
+    let inner = null;
+    try {
+      inner = new URL(link).searchParams.get("url");
+    } catch {
+      break;
+    }
+    // searchParams.get already percent-decodes, but a doubly-encoded inner
+    // URL (common in Scholar links) may still need one more pass before the
+    // http(s) test recognises it.
+    if (inner && !/^https?:\/\//i.test(inner)) {
+      try { inner = decodeURIComponent(inner); } catch { /* leave as-is */ }
+    }
+    if (inner && /^https?:\/\//i.test(inner)) link = inner;
+    else break;
+  }
+  return normalizeLink(link);
+}
+
+// Strip per-search and per-session query params so the SAME paper arriving
+// via different alert searches (e.g. "big 5" vs "big five") de-dupes to one
+// row. Scholar/Google-Books links carry tracking junk — dq, ots, sig, ei,
+// scisig, oi, hl, lr, sa, usg, ved, source, cd, etc. — that varies per
+// visit; we keep only the stable identifiers. Unknown hosts are left as-is
+// except for these universally-tracking keys.
+function normalizeLink(link) {
+  let u;
+  try { u = new URL(link); } catch { return link; }
+
+  // Canonicalize the PATH's percent-encoding: decode it fully, then re-encode
+  // with a single consistent scheme. This collapses links that differ only by
+  // whether a literal char in the path was encoded — e.g. JACC DOIs with
+  // "(26)" vs "%2826%29", or stray "{"/"}" vs "%7B"/"%7D". encodeURI leaves
+  // path-legal chars (including parens) as-is, giving one stable form.
+  try {
+    let decoded = u.pathname;
+    // Fully decode (may be doubly-encoded), guarding against malformed %.
+    for (let i = 0; i < 3 && /%[0-9A-Fa-f]{2}/.test(decoded); i++) {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) break;
+      decoded = next;
+    }
+    u.pathname = encodeURI(decoded);
+  } catch { /* leave path as-is on malformed encoding */ }
+
+  // Always-junk params, safe to drop on any host.
+  const DROP = new Set([
+    "dq", "ots", "sig", "ei", "scisig", "oi", "hl", "lr", "sa", "usg",
+    "ved", "source", "cd", "client", "scisbd", "as_sdt", "gbv", "gbpv",
+    "newbks", "redir_esc", "utm_source", "utm_medium", "utm_campaign",
+    "utm_term", "utm_content", "__cf_chl_tk", "__cf_chl_rt_tk", "s",
+  ]);
+  for (const k of [...u.searchParams.keys()]) {
+    if (DROP.has(k)) u.searchParams.delete(k);
+  }
+
+  // Google Books: the book id (+ page, if present) is the whole identity.
+  if (/(^|\.)books\.google\./i.test(u.hostname)) {
+    const id = u.searchParams.get("id");
+    if (id) {
+      const pg = u.searchParams.get("pg");
+      const qs = pg ? `id=${id}&pg=${pg}` : `id=${id}`;
+      return `${u.origin}${u.pathname}?${qs}`;
+    }
+  }
+
+  // Canonicalize the surviving query: sort params and re-encode uniformly,
+  // so the SAME link de-dupes regardless of param order or whether the
+  // sender percent-encoded characters like ':' (%3A vs :). EBSCO and other
+  // hosts deliver the same URL with different encoding across alerts.
+  const pairs = [...u.searchParams.entries()].sort(
+    (a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1])
+  );
+  u.search = pairs.length
+    ? "?" + pairs.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&")
+    : "";
+
+  // Drop a trailing "?" if we emptied the query string.
+  const out = u.toString();
+  return out.endsWith("?") ? out.slice(0, -1) : out;
+}
+
+function deriveTag(subject) {
+  // Strip forwarding prefixes so "Fwd: Dark Triad - new results"
+  // tags the same as a direct alert.
+  subject = subject.replace(/^\s*(?:(?:fwd?|fw|re)\s*:\s*)+/i, "");
+
+  // Subjects look like:  'New articles in the topic "Dark Triad"'
+  //                 or:  '"dark tetrad" - new results'
+  const quoted = subject.match(/[""']([^""']+)[""']/);
+  if (quoted) {
+    const matched = matchKnownTerm(quoted[1]);
+    if (matched) return canonical(matched);
+    return canonical(quoted[1].trim());
+  }
+  const matched = matchKnownTerm(subject);
+  if (matched) return canonical(matched);
+  return canonical(subject.replace(/\s*-\s*new (?:results|articles).*/i, "").trim()) || "untagged";
+}
+
+function matchKnownTerm(text) {
+  const lower = text.toLowerCase();
+  for (const term of KNOWN_TERMS) {
+    if (lower.includes(term.toLowerCase())) return term;
+  }
+  return null;
+}
+
+/* ------------------------- storage ------------------------- */
+
+// Conservative title key for de-dup: lowercase, strip punctuation/accents,
+// collapse whitespace. Only used to match papers when their LINKS differ
+// (e.g. same work via Springer /chapter/ vs /content/pdf/). Guarded by a
+// length threshold so short generic titles ("Introduction", "Editorial")
+// never auto-merge distinct papers.
+const TITLE_DEDUP_MIN_LEN = 15;
+
+function titleKey(t) {
+  return (t || "")
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "") // drop accents
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function sydneyNow() {
+  const parts = new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Sydney",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(new Date());
+  const p = Object.fromEntries(parts.filter(x => x.type !== "literal").map(x => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+
+async function upsertPaper(db, p, tag, subject) {
+  const title = normalizeIntakeTitle(p.title);
+  // 1 · Primary de-dup on the (normalized) link.
+  await db
+    .prepare(
+      `INSERT INTO papers (title, authors, snippet, link, alert_subject, first_seen)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(link) DO NOTHING`
+    )
+    .bind(title, p.authors, p.snippet, p.link, subject, sydneyNow())
+    .run();
+
+  let row = await db
+    .prepare(`SELECT id FROM papers WHERE link = ?`)
+    .bind(p.link)
+    .first();
+
+  // 2 · Secondary de-dup on title — catches the SAME paper arriving via a
+  //     genuinely different URL (cross-host), which link-dedup can't see.
+  //     Only for distinctive (long enough) titles, to avoid merging two
+  //     different papers that happen to share a short generic title.
+  const key = titleKey(title);
+  if (key.length >= TITLE_DEDUP_MIN_LEN) {
+    const existing = (await db
+      .prepare(`SELECT id, title, link FROM papers ORDER BY id ASC`)
+      .all()).results || [];
+    // Find the lowest-id existing paper with the same title key, that ISN'T
+    // the row we just inserted/matched.
+    let twin = null;
+    for (const e of existing) {
+      if (titleKey(e.title) === key) { twin = e; break; }
+    }
+    if (twin && (!row || twin.id !== row.id)) {
+      // A pre-existing paper with this title exists. Tag IT, and remove the
+      // duplicate row we may have just inserted under the new link.
+      if (row && row.id !== twin.id) {
+        await db.prepare(`DELETE FROM papers WHERE id = ?`).bind(row.id).run();
+      }
+      row = twin;
+    }
+  }
+
+  if (!row) return;
+
+  const storedTag = canonical(tag);
+  // Retry the tag insert — the paper row above is already committed, so a
+  // transient failure here would otherwise leave a permanently tag-less paper.
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await db
+        .prepare(`INSERT INTO tags (paper_id, tag) VALUES (?, ?)
+                  ON CONFLICT(paper_id, tag) DO NOTHING`)
+        .bind(row.id, storedTag)
+        .run();
+      lastErr = null;
+      break;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  if (lastErr) throw lastErr;
+}
+
+/* ------------------------- maintenance ------------------------- */
+
+// Normalize every paper's link to the canonical form, merging rows that
+// collide after normalization. For each collision group the LOWEST id is
+// kept (preserving manual edits/snippets); its tags absorb the others',
+// a non-inbox status wins over inbox, and the duplicate rows are deleted.
+// Returns a summary of what changed. Idempotent — safe to run twice.
+async function backfillLinks(db) {
+  const all = (await db.prepare(`SELECT id, link, status FROM papers ORDER BY id ASC`).all()).results || [];
+
+  // Group by normalized link (rows already sorted ascending, so the first
+  // id seen for each normalized link is the lowest = the one we keep).
+  const groups = new Map(); // normLink -> { keep, rows:[{id,status,link}] }
+  for (const r of all) {
+    const norm = normalizeLink(r.link || "");
+    if (!groups.has(norm)) groups.set(norm, { keep: r.id, rows: [] });
+    groups.get(norm).rows.push({ id: r.id, status: r.status, link: r.link });
+  }
+
+  let relinked = 0, merged = 0;
+
+  for (const [norm, g] of groups) {
+    const keep = g.keep;
+    const dups = g.rows.filter((r) => r.id !== keep);
+
+    for (const d of dups) {
+      await db.prepare(
+        `INSERT OR IGNORE INTO tags (paper_id, tag) SELECT ?, tag FROM tags WHERE paper_id = ?`
+      ).bind(keep, d.id).run();
+      if (d.status && d.status !== "inbox") {
+        await db.prepare(
+          `UPDATE papers SET status = ? WHERE id = ? AND status = 'inbox'`
+        ).bind(d.status, keep).run();
+      }
+      await db.prepare(`DELETE FROM papers WHERE id = ?`).bind(d.id).run();
+      merged++;
+    }
+
+    const keptRow = g.rows.find((r) => r.id === keep);
+    if (keptRow && keptRow.link !== norm) {
+      await db.prepare(`UPDATE papers SET link = ? WHERE id = ?`).bind(norm, keep).run();
+      relinked++;
+    }
+  }
+
+  // Second pass: collapse cross-host dupes by title key (same paper, two
+  // genuinely different URLs that link-normalization can't unify). Only
+  // distinctive (long) titles, lowest id kept. Same guard as upsertPaper.
+  let titleMerged = 0;
+  const survivors = (await db.prepare(`SELECT id, title, status FROM papers ORDER BY id ASC`).all()).results || [];
+  const byTitle = new Map(); // titleKey -> keepId
+  for (const r of survivors) {
+    const key = titleKey(r.title);
+    if (key.length < TITLE_DEDUP_MIN_LEN) continue;
+    if (!byTitle.has(key)) { byTitle.set(key, r.id); continue; }
+    const keep = byTitle.get(key);
+    await db.prepare(
+      `INSERT OR IGNORE INTO tags (paper_id, tag) SELECT ?, tag FROM tags WHERE paper_id = ?`
+    ).bind(keep, r.id).run();
+    if (r.status && r.status !== "inbox") {
+      await db.prepare(`UPDATE papers SET status = ? WHERE id = ? AND status = 'inbox'`).bind(r.status, keep).run();
+    }
+    await db.prepare(`DELETE FROM papers WHERE id = ?`).bind(r.id).run();
+    titleMerged++;
+  }
+
+  return {
+    scanned: all.length,
+    unique_after: groups.size,
+    relinked,        // rows whose link was rewritten to canonical form
+    merged,          // duplicate rows folded by matching link
+    title_merged: titleMerged, // cross-host dupes folded by matching title
+    remaining: all.length - merged - titleMerged,
+  };
+}
+
+/* ------------------------- MIME helpers ------------------------- */
+
+async function streamToString(stream) {
+  const chunks = [];
+  const reader = stream.getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  return new TextDecoder("utf-8").decode(concat(chunks));
+}
+
+function concat(chunks) {
+  const total = chunks.reduce((n, c) => n + c.length, 0);
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) { out.set(c, off); off += c.length; }
+  return out;
+}
+
+// Pull EVERY text/html part out of a raw MIME message — forwards can nest
+// the original message (forward-as-attachment) or add wrapper parts.
+// Each part is decoded per its own Content-Transfer-Encoding and charset:
+// quoted-printable (Gmail), base64 (Proton Mail), or plain 7bit/8bit.
+function extractHtmlBodies(raw) {
+  const bodies = [];
+  const re = /Content-Type:\s*text\/html[^\r\n]*/gi;
+  let m;
+  while ((m = re.exec(raw))) {
+    const chunk = raw.slice(m.index);
+
+    // Part headers run until the first blank line.
+    const blank = chunk.match(/\r?\n\r?\n/);
+    if (!blank) continue;
+    const headerEnd = blank.index + blank[0].length;
+    const partHeaders = chunk.slice(0, headerEnd);
+
+    let body = chunk.slice(headerEnd);
+    const end = body.search(/\r?\n--/); // next MIME boundary
+    if (end !== -1) body = body.slice(0, end);
+
+    const enc = (partHeaders.match(/Content-Transfer-Encoding:\s*([\w-]+)/i)?.[1] || "7bit").toLowerCase();
+    const charset = partHeaders.match(/charset="?([A-Za-z0-9_-]+)"?/i)?.[1] || "utf-8";
+
+    const decoded = decodePart(body, enc, charset);
+    if (decoded && decoded.trim()) bodies.push(decoded);
+  }
+
+  // Not a MIME multipart at all? Some messages are bare HTML.
+  if (bodies.length === 0 && /<html|<body|<h3|scholar_url/i.test(raw)) {
+    bodies.push(raw);
+  }
+
+  return bodies;
+}
+
+function decodePart(body, enc, charset) {
+  try {
+    if (enc === "base64") {
+      const clean = body.replace(/[^A-Za-z0-9+/=]/g, "");
+      const bin = atob(clean);
+      const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+      return decodeCharset(bytes, charset);
+    }
+    if (enc === "quoted-printable") {
+      // Decode to BYTES first, then apply the charset — decoding straight
+      // to chars mangles multi-byte UTF-8 (Müller → MÃ¼ller).
+      const joined = body.replace(/=\r?\n/g, "");
+      const bytes = [];
+      for (let i = 0; i < joined.length; i++) {
+        if (joined[i] === "=" && /^[0-9A-Fa-f]{2}/.test(joined.slice(i + 1, i + 3))) {
+          bytes.push(parseInt(joined.slice(i + 1, i + 3), 16));
+          i += 2;
+        } else {
+          bytes.push(joined.charCodeAt(i) & 0xff);
+        }
+      }
+      return decodeCharset(new Uint8Array(bytes), charset);
+    }
+    return body; // 7bit / 8bit / binary
+  } catch (e) {
+    console.log(`part decode failed (${enc}/${charset}):`, String(e));
+    return body;
+  }
+}
+
+function decodeCharset(bytes, charset) {
+  try {
+    return new TextDecoder(charset).decode(bytes);
+  } catch {
+    return new TextDecoder("utf-8").decode(bytes); // unknown charset → utf-8
+  }
+}
+
+function stripTags(s) {
+  return decodeEntities(s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "));
+}
+
+function decodeEntities(s) {
+  return s
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n));
+}
+
+function dedupeByLink(arr) {
+  const seen = new Set();
+  return arr.filter((p) => {
+    if (!p.link || seen.has(p.link)) return false;
+    seen.add(p.link);
+    return true;
+  });
+}
+
+// Exported for testing (ignored by the Workers runtime).
+export { parseScholarHtml, extractHtmlBodies, unwrapLink, normalizeLink, deriveTag };

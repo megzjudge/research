@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="alternate" href="https://research.jdge.cc/" hreflang="en">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Research Paper Alerts | Megan Judge</title>
+  <meta name="description" content="Browse Megan Judge's latest Google Scholar research alerts across psychology, philosophy, and related topics. Explore newly published papers with search, filtering, and automatic organisation.">
+  <meta name="author" content="Megan Judge">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#f7a64b">
+  <link rel="canonical" href="https://research.jdge.cc/">
+  <meta property="og:title" content="Research Paper Alerts | Megan Judge">
+  <meta property="og:description" content="Browse Megan Judge's latest Google Scholar research alerts across psychology, philosophy, and related topics. Automatically organised and searchable.">
+  <meta property="og:site_name" content="Research Paper Alerts | Megan Judge">
+  <meta property="og:url" content="https://research.jdge.cc/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_AU">
+  <meta property="og:image" content="https://research.jdge.cc/images/icon.png">
+  <meta property="og:image:alt" content="Research Paper Alerts">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Research Paper Alerts | Megan Judge">
+  <meta name="twitter:description" content="Browse Megan Judge's latest Google Scholar research alerts across psychology, philosophy, and related topics.">
+  <meta name="twitter:image" content="https://research.jdge.cc/images/icon.png">
+  <meta name="twitter:image:alt" content="Research Paper Alerts">
+  <meta name="keywords" content="Google Scholar alerts, research papers, psychology papers, philosophy papers, academic research, Megan Judge, scholarly articles, literature alerts">
+  <meta name="subject" content="Academic Research Paper Alerts">
+  <link rel="icon" type="image/png" href="/images/icon.png">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://analytics.ahrefs.com/analytics.js" data-key="+0dJsEes5o7w9zOR6+fc0Q" async></script>
+</head>
+
+<body>
+  <div class="layout">
+    <aside class="rail">
+      <p class="brand">New Papers Alerts</p>
+      <p class="tagline">New papers across the search terms I track through Google Scholar Alerts.</p>
+      <ul id="railnav" class="railnav"></ul>
+      <div class="addbox addstudy">
+        <input id="studyurl" type="url" placeholder="Add a study URL…" autocomplete="off" />
+        <button id="studyscan" type="button">scan</button>
+      </div>
+      <form id="studyform" class="studyform" hidden>
+        <label class="studylabel">title<input id="studytitle" type="text" autocomplete="off" /></label>
+        <label class="studylabel">author<input id="studyauthor" type="text" autocomplete="off" /></label>
+        <label class="studylabel">description<textarea id="studysnip" rows="3"></textarea></label>
+        <label class="studylabel">archive link (optional)<input id="studyarchive" type="url" autocomplete="off" /></label>
+        <label class="studylabel">section
+          <select id="studytag"><option value="">choose a section…</option></select>
+        </label>
+        <div class="studyactions">
+          <button id="studysubmit" type="submit">add study</button>
+          <button id="studycancel" type="button">cancel</button>
+        </div>
+      </form>
+      <div class="addbox">
+        <input id="newtag" type="text" placeholder="Add a tag…" autocomplete="off" />
+        <button id="addbtn">add</button>
+      </div>
+      <div class="utillinks">
+        <a href="#" id="trashlink" class="trashlink" hidden>
+          <span class="trashicon" aria-hidden="true">🗑</span>
+          <span>trash</span>
+          <span id="trashcount" class="c">0</span>
+        </a>
+        <a href="#" id="shotslink" class="trashlink shotslink" hidden>
+          <span class="trashicon" aria-hidden="true">🖼</span>
+          <span>screenshots</span>
+          <span id="shotscount" class="c">0</span>
+        </a>
+      </div>
+      <footer class="site-footer rail-footer">
+        <p>© Megan Judge · Jan 9, 2026 (concept Nov 16, 2023) · <a href="https://github.com/megzjudge/research/" target="_blank" rel="noopener noreferrer">Github</a></p>
+      </footer>
+    </aside>
+
+    <main class="content">
+      <div class="searchwrap">
+        <button type="button" id="readOnlyBtn" class="searchctl" data-state="off">Read Only</button>
+        <button type="button" id="rouletteBtn" class="searchctl">Roulette</button>
+        <button type="button" id="searchToggleBtn" class="searchctl" aria-expanded="false" aria-label="toggle search">Search</button>
+        <div id="searchFieldWrap" class="search-field-wrap">
+          <input id="q" class="search" type="search" placeholder="search all papers — titles, authors, abstracts…" autocomplete="off" />
+        </div>
+      </div>
+      <div id="sections"></div>
+      <div id="status" class="statusline">loading…</div>
+    </main>
+  </div>
+
+  <footer class="site-footer page-footer">
+    <p>© Megan Judge · Jan 9, 2026 (concept Nov 16, 2023) · <a href="https://github.com/megzjudge/research/" target="_blank" rel="noopener noreferrer">Github</a></p>
+  </footer>
+
+  <div id="lightbox" class="lightbox" hidden>
+    <button type="button" class="lightbox-close" aria-label="close preview">×</button>
+    <img id="lightbox-img" alt="" />
+  </div>
+
+  <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+
+  <script src="/script.js"></script>
+</body>
+</html>

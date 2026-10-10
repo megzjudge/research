@@ -6,6 +6,10 @@ const elSections   = document.getElementById("sections");
 const elRail       = document.getElementById("railnav");
 const elStatus     = document.getElementById("status");
 const elQ          = document.getElementById("q");
+const elReadOnlyBtn = document.getElementById("readOnlyBtn");
+const elRouletteBtn = document.getElementById("rouletteBtn");
+const elSearchToggleBtn = document.getElementById("searchToggleBtn");
+const elSearchFieldWrap = document.getElementById("searchFieldWrap");
 const elNew        = document.getElementById("newtag");
 const elAdd        = document.getElementById("addbtn");
 const elStudyUrl   = document.getElementById("studyurl");
@@ -36,11 +40,11 @@ let savedScroll = 0; // scroll position on the home page, captured right before 
 const RAIL_GROUPS = [
   {
     banner: "Noetics",
-    tags: ["Experimental Philosophy", "Dreams", "Śūnyatā", "Meditation"],
+    tags: ["Experimental Philosophy", "Dreams", "Meditation", "Consciousness", "Śūnyatā"],
   },
   {
     banner: "Psychology",
-    tags: ["Big Five", "Big Ten", "Intelligence Quotient", "MBTI", "HEXACO", "Indian Psychology", "Psychological Projection", "Psych Miscellaneous"],
+    tags: ["Big Five", "Big Ten", "Intelligence Quotient", "MBTI", "HEXACO", "Indian Psychology", "Psychological Projection", "Cellular Memory", "Psych Miscellaneous"],
   },
   {
     banner: "Deviancy",
@@ -48,11 +52,11 @@ const RAIL_GROUPS = [
   },
   {
     banner: "Breeding",
-    tags: ["Mate Choice", "Intrasexual Competition", "Attraction", "Genetics", "Environment"],
+    tags: ["Mate Choice", "Intrasexual Competition", "Genetics", "Environment", "Silicon-Based Life", "Microplastics"],
   },
   {
     banner: "Health",
-    tags: ["Sunlight", "Health (overall)", "Essential Oil", "Testosterone", "Coronavirus", "Fluoride", "β-Casomorphin-7", "Cobalamin", "Gemstones"],
+    tags: ["Sunlight", "Health (overall)", "Cooking Oil", "Essential Oil", "Acrylamide", "Testosterone", "Telomeres", "Coronavirus", "Fluoride", "β-Casomorphin-7", "Cobalamin", "Gemstones"],
   },
   {
     banner: "Specifics",
@@ -85,7 +89,7 @@ const TERM_ALIASES = {
   "sattva": "Indian Psychology",
   "atman": "Indian Psychology",
   "indian": "Indian Psychology",
-  "cellular memory": "Psychological Projection",
+  "cellular memory": "Cellular Memory",
   "tarot": "Psychological Projection",
   "death": "Psychological Projection",
   "language": "Society",
@@ -95,8 +99,8 @@ const TERM_ALIASES = {
   "urbanisation": "Society",
   "urbanization": "Society",
   "gaming": "Society",
-  "memory": "Psych Miscellaneous",
-  "consciousness": "Psych Miscellaneous",
+  "memory": "Cellular Memory",
+  "consciousness": "Consciousness",
   "experimental philosophy": "Experimental Philosophy",
   "philosophy of mind": "Experimental Philosophy",
   "metaphysics": "Experimental Philosophy",
@@ -148,17 +152,28 @@ const TERM_ALIASES = {
   "assortative mating": "Mate Choice",
   "intersexual selection": "Mate Choice",
   "mate choice": "Mate Choice",
+  "telomeres": "Telomeres",
+  "stress": "Telomeres",
+  "ageing": "Telomeres",
+  "aging": "Telomeres",
   "genetics": "Genetics",
-  "attraction": "Attraction",
+  "attraction": "Mate Choice",
   "intrasexual competition": "Intrasexual Competition",
   "sunlight": "Sunlight",
   "red light": "Sunlight",
   "vitamin d": "Sunlight",
   "blue light": "Sunlight",
+  "sunlight or red light or vitamin d or blue light": "Sunlight",
+  "cooking oil": "Cooking Oil",
   "essential oil": "Essential Oil",
   "health": "Health (overall)",
   "health (overall)": "Health (overall)",
+  "nutrition": "Health (overall)",
   "meditation": "Meditation",
+  "silicon-based life": "Silicon-Based Life",
+  "silicon based life": "Silicon-Based Life",
+  '"śūnyatā" or "śūnya"': "Śūnyatā",
+  "śūnyatā or śūnya": "Śūnyatā",
   "śūnyatā": "Śūnyatā",
   "śūnya": "Śūnyatā",
   "sunyata": "Śūnyatā",
@@ -171,7 +186,10 @@ const TERM_ALIASES = {
   "enthusiasm and assertiveness": "Big Ten",
   "compassion and politeness": "Big Ten",
   "industriousness": "Big Ten",
+  "acrylamide": "Acrylamide",
   "testosterone": "Testosterone",
+  "microplastic": "Microplastics",
+  "microplastics": "Microplastics",
   "ß-casomorphin-7": "β-Casomorphin-7",
   "bcm-7": "β-Casomorphin-7",
   "bcm7": "β-Casomorphin-7",
@@ -191,6 +209,11 @@ const TERM_ALIASES = {
   "crystallised intelligence": "Intelligence Quotient",
   "carroll's three-stratum hierarchy": "Intelligence Quotient",
   "honesty-humility": "HEXACO",
+  "food": "Environment",
+  "virology": "Coronavirus",
+  "disgust": "Psych Miscellaneous",
+  "genitals": "Sociosexuality",
+  "autism": "ADHD",
 };
 
 const CANONICAL_TAGS = [
@@ -207,16 +230,22 @@ const CANONICAL_TAGS = [
   "Bisexuality",
   "Sociosexuality",
   "Psychological Projection",
+  "Cellular Memory",
   "Mate Choice",
+  "Telomeres",
   "Genetics",
-  "Attraction",
   "Intrasexual Competition",
   "Health (overall)",
+  "Cooking Oil",
   "Essential Oil",
   "Sunlight",
   "Meditation",
+  "Consciousness",
+  "Silicon-Based Life",
   "Śūnyatā",
+  "Acrylamide",
   "Testosterone",
+  "Microplastics",
   "Coronavirus",
   "Fluoride",
   "β-Casomorphin-7",
@@ -266,14 +295,19 @@ const ACRONYMS = new Set(["adhd","mbti","hexaco","ocd","ptsd","iq","eq","big5","
 
 const TAG_DISPLAY_LABELS = {
   "Dark Triad": "Dark Triad / Dark Tetrad / Machiavellianism",
-  "Mate Choice": "Mate Choice / Assortative Mating / Intersexual Selection",
+  "Mate Choice": "Mate Choice / Assortative Mating / Intersexual Selection / Attraction",
   "Sunlight": "Sunlight / Red Light / Vitamin D / Blue Light",
   "Śūnyatā": "Śūnyatā / Śūnya",
-  "ADHD": "ADHD / ADHD and Nicotine",
-  "Sociosexuality": "Sociosexuality / High Sex Drive",
-  "Psychological Projection": "Psychological Projection / Cellular Memory / Tarot / Death",
+  "ADHD": "ADHD / Autism / ADHD and Nicotine",
+  "Sociosexuality": "Sociosexuality / High Sex Drive / Genitals",
+  "Psychological Projection": "Psychological Projection / Tarot / Death",
+  "Cellular Memory": "Cellular Memory / Memory",
+  "Telomeres": "Telomeres / Stress / Ageing",
   "Society": "Society / Language / Legal / IT / Urbanisation / Gaming / Bitcoin",
-  "Psych Miscellaneous": "Psych Miscellaneous / Memory / Consciousness",
+  "Health (overall)": "Health (overall) / Nutrition",
+  "Psych Miscellaneous": "Psych Miscellaneous / Disgust",
+  "Environment": "Environment / Food",
+  "Coronavirus": "Coronavirus / Virology",
 };
 
 // Rail-only short labels — shown in sidebar but NOT in the main content heading
@@ -626,7 +660,7 @@ function cardHtml(p, compact, isNew = false) {
 
   const has = new Set(canonTags);
   const addable = allTags.filter(t => !has.has(t));
-  const plus = (!compact && p.id && addable.length)
+  const plus = (p.id && addable.length)
     ? `<span class="addtag-wrap">
          <button class="tagchip tagadd" data-addtag="${p.id}" title="add to a section">+</button>
          <span class="tagmenu" hidden>${addable.map(t =>
@@ -634,11 +668,11 @@ function cardHtml(p, compact, isNew = false) {
          ).join("")}</span>
        </span>`
     : "";
-  const tags = (!compact && (chips || plus)) ? `<span class="cardtags">${chips}${plus}</span>` : "";
+  const tags = (chips || plus) ? `<span class="cardtags">${chips}${plus}</span>` : "";
   const cls = (compact ? "cardx cardx-compact" : "cardx") + (isNew ? " card-new" : "");
   const shot = shotHtml(p);
   const readTitle = isRead(p) ? ` title="Read ${esc(formatDate(p.read_at))}"` : "";
-  return `<article class="${cls}"${readTitle}>
+  return `<article class="${cls}" data-readstate="${isRead(p) ? 1 : 0}"${readTitle}>
     <a class="ttl" href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.title)}</a>
     ${compact ? "" : (p.authors ? `<p class="auth">${esc(p.authors)}</p>` : "")}
     ${compact ? "" : (p.snippet ? `<p class="snip">${esc(p.snippet)}</p>` : "")}
@@ -983,6 +1017,53 @@ elQ.addEventListener("input", () => {
     const q = elQ.value.trim();
     if (q) runSearch(q); else loadSections();
   }, 220);
+});
+
+let readFilter = "off"; // "off" | "read" | "unread"
+
+function applyReadFilter() {
+  elReadOnlyBtn.textContent = readFilter === "unread" ? "Unread Only" : "Read Only";
+  elReadOnlyBtn.classList.toggle("active", readFilter !== "off");
+  elReadOnlyBtn.classList.toggle("state-unread", readFilter === "unread");
+  elReadOnlyBtn.setAttribute("data-state", readFilter);
+  document.body.classList.toggle("filter-read", readFilter === "read");
+  document.body.classList.toggle("filter-unread", readFilter === "unread");
+}
+
+elReadOnlyBtn?.addEventListener("click", () => {
+  readFilter = readFilter === "off" ? "read" : readFilter === "read" ? "unread" : "off";
+  applyReadFilter();
+});
+
+async function runRoulette() {
+  setView("roulette");
+  elStatus.textContent = "spinning…";
+  const params = new URLSearchParams({ random: "1", limit: "1" });
+  if (readFilter === "read") params.set("read", "1");
+  else if (readFilter === "unread") params.set("read", "0");
+  try {
+    const r = await fetch("/api/papers?" + params);
+    const { papers = [] } = await r.json();
+    const p = papers[0];
+    const bar = `<span class="sechead-bar"><button type="button" class="sechead-close" data-sec-close title="back to all sections" aria-label="back to all sections">×</button></span>`;
+    elSections.innerHTML = `
+      <section class="section">
+        <div class="sechead"><h2>Roulette</h2>${bar}</div>
+        <div class="grid roulette-grid">${p ? cardHtml(p, false) : ""}</div>
+      </section>`;
+    elStatus.textContent = p ? "" : "Nothing matches that filter.";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) {
+    elStatus.textContent = "Couldn't spin the roulette.";
+  }
+}
+elRouletteBtn?.addEventListener("click", runRoulette);
+
+elSearchToggleBtn?.addEventListener("click", () => {
+  const open = elSearchFieldWrap.classList.toggle("open");
+  elSearchToggleBtn.setAttribute("aria-expanded", String(open));
+  elSearchToggleBtn.classList.toggle("active", open);
+  if (open) elQ.focus();
 });
 
 async function runSearch(q, tag, readOnly = false, limit = 100, prevShown = 0) {

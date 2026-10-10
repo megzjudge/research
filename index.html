@@ -34,7 +34,7 @@
   <div class="layout">
     <aside class="rail">
       <p class="brand">New Papers Alerts</p>
-      <p class="tagline">New papers across the trait taxonomies I track through Google Scholar Alerts.</p>
+      <p class="tagline">New papers across the search terms I track through Google Scholar Alerts.</p>
       <ul id="railnav" class="railnav"></ul>
       <div class="addbox addstudy">
         <input id="studyurl" type="url" placeholder="Add a study URL…" autocomplete="off" />
@@ -76,7 +76,12 @@
 
     <main class="content">
       <div class="searchwrap">
-        <input id="q" class="search" type="search" placeholder="search all papers — titles, authors, abstracts…" autocomplete="off" />
+        <button type="button" id="readOnlyBtn" class="searchctl" data-state="off">Read Only</button>
+        <button type="button" id="rouletteBtn" class="searchctl">Roulette</button>
+        <button type="button" id="searchToggleBtn" class="searchctl" aria-expanded="false" aria-label="toggle search">Search</button>
+        <div id="searchFieldWrap" class="search-field-wrap">
+          <input id="q" class="search" type="search" placeholder="search all papers — titles, authors, abstracts…" autocomplete="off" />
+        </div>
       </div>
       <div id="sections"></div>
       <div id="status" class="statusline">loading…</div>

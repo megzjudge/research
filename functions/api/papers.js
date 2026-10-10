@@ -65,8 +65,9 @@ export async function onRequestGet({ request, env }) {
     where.push(`p.read_at IS NULL`);
   }
 
+  const random = url.searchParams.get("random") === "1";
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-  const orderSql = read === "1" ? "p.read_at DESC" : "p.first_seen DESC";
+  const orderSql = random ? "RANDOM()" : (read === "1" ? "p.read_at DESC" : "p.first_seen DESC");
 
   const sql = `
     SELECT ${PAPER_FIELDS},

@@ -130,6 +130,7 @@ body.filter-unread .cardx[data-readstate="1"] { display: none !important; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .cardx { background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 16px 16px 14px; display: flex; flex-direction: column; transition: border-color .12s, transform .12s; }
 .cardx:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.cardx.menu-open { transform: none; }
 .cardx a.ttl { font-size: 16px; font-weight: 500; line-height: 1.28; color: var(--ink); text-decoration: none; }
 .cardx a.ttl:hover { color: var(--accent); }
 .cardx .auth { font-size: 12.5px; font-style: italic; color: var(--accent); margin: 6px 0 0; }

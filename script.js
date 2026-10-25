@@ -111,6 +111,8 @@ const TERM_ALIASES = {
   "emil kirkegaard": "Followed Authors",
   "paul eastwick": "Followed Authors",
   "noah carl": "Followed Authors",
+  "michael araki": "Followed Authors",
+  "delroy l. paulhus": "Followed Authors",
   "diana fleischman": "Followed Authors",
   "bo winegard": "Followed Authors",
   "edward dutton": "Followed Authors",
@@ -147,6 +149,7 @@ const TERM_ALIASES = {
   "adhd": "ADHD",
   "high sex drive": "Sociosexuality",
   "iq": "Intelligence Quotient",
+  "s": "Intelligence Quotient",
   "intelligent quotient": "Intelligence Quotient",
   "intelligence quotient": "Intelligence Quotient",
   "assortative mating": "Mate Choice",
@@ -853,6 +856,10 @@ elSections.addEventListener("click", async (e) => {
     const wasHidden = menu.hidden;
     closeAllTagMenus();
     menu.hidden = !wasHidden;
+    // A card's hover transform creates a stacking context that traps the
+    // dropdown's z-index inside it, so the next row paints over it. Strip
+    // the transform while the menu is open so it can stack at the page level.
+    plus.closest(".cardx")?.classList.toggle("menu-open", !menu.hidden);
     return;
   }
 
@@ -987,6 +994,7 @@ async function pickScreenshot(paperId) {
 
 function closeAllTagMenus() {
   elSections.querySelectorAll(".tagmenu").forEach((m) => { m.hidden = true; });
+  elSections.querySelectorAll(".cardx.menu-open").forEach((c) => { c.classList.remove("menu-open"); });
 }
 
 document.addEventListener("click", (e) => {

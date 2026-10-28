@@ -511,6 +511,36 @@ export default {
       const raw = await streamToString(message.raw);
       const subject = decodeMimeWords(message.headers.get("subject") || "");
 
+      // One-time-per-alert unsubscribe capture: `alerts` has one row per
+      // distinct alert_subject string (the same values that land in
+      // papers.alert_subject). The first email for a given subject that
+      // contains an extractable unsubscribe link fills that row's url;
+      // once filled, later emails with the same subject are skipped (cheap
+      // existence check, no re-parsing). Query the table any time to get a
+      // cancel link for any alert, not just one specific one.
+      try {
+        const existing = await env.research
+          .prepare(`SELECT unsubscribe_url FROM alerts WHERE alert_subject = ?`)
+          .bind(subject)
+          .first();
+        if (!existing || !existing.unsubscribe_url) {
+          const unsubMatches = [...raw.matchAll(/https?:\/\/[^\s"'<>]*(?:unsubscribe|cancel_alert|scholar_alerts\?[^\s"'<>]*cancel)[^\s"'<>]*/gi)];
+          const url = unsubMatches.length ? unsubMatches[0][0].replace(/&amp;/g, "&") : null;
+          await env.research
+            .prepare(
+              `INSERT INTO alerts (alert_subject, unsubscribe_url, first_seen, filled_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(alert_subject) DO UPDATE SET
+                 unsubscribe_url = COALESCE(alerts.unsubscribe_url, excluded.unsubscribe_url),
+                 filled_at = CASE WHEN alerts.unsubscribe_url IS NULL THEN excluded.filled_at ELSE alerts.filled_at END`
+            )
+            .bind(subject, url, sydneyNow(), url ? sydneyNow() : null)
+            .run();
+        }
+      } catch (e) {
+        console.log("alerts table capture failed (has the `alerts` table been created?):", String(e));
+      }
+
       // A forward can contain several text/html parts (the forwarder's
       // wrapper, the original message, an attached .eml). Scan them all.
       const htmlParts = extractHtmlBodies(raw);
